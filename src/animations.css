@@ -1,0 +1,498 @@
+/* ========================================
+   GOT NEXUSES - OPTIMIZED ANIMATIONS
+   GPU-Accelerated, Smooth, Performant
+   ======================================== */
+
+/* ============================================
+   SECTION REVEAL ANIMATIONS
+   Using transform and opacity only (GPU accelerated)
+   ============================================ */
+
+.gn-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.gn-reveal.gn-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gn-reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.gn-reveal-left.gn-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.gn-reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.gn-reveal-right.gn-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.gn-reveal-scale {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.gn-reveal-scale.gn-revealed {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Fallback: ensure content is visible after animation delay */
+/* This prevents content from staying hidden if JS fails */
+@keyframes fallbackReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+}
+
+.gn-reveal,
+.gn-reveal-left,
+.gn-reveal-right,
+.gn-reveal-scale {
+  animation: fallbackReveal 0.6s ease forwards;
+  animation-delay: 0.8s;
+}
+
+.gn-reveal.gn-revealed,
+.gn-reveal-left.gn-revealed,
+.gn-reveal-right.gn-revealed,
+.gn-reveal-scale.gn-revealed {
+  animation: none;
+}
+
+/* Stagger delays */
+.gn-stagger-1 {
+  transition-delay: 0.1s;
+}
+
+.gn-stagger-2 {
+  transition-delay: 0.2s;
+}
+
+.gn-stagger-3 {
+  transition-delay: 0.3s;
+}
+
+/* ============================================
+   BACKGROUND GRADIENT ORBS
+   Lightweight CSS-only animation
+   ============================================ */
+
+.gn-bg-effects {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.gn-gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.3;
+  will-change: transform;
+  /* Using transform instead of filter blur for better performance */
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+}
+
+.gn-gradient-orb--1 {
+  width: 500px;
+  height: 500px;
+  top: -150px;
+  right: -100px;
+  animation: gnOrbFloat 20s ease-in-out infinite;
+}
+
+.gn-gradient-orb--2 {
+  width: 400px;
+  height: 400px;
+  bottom: -100px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+  animation: gnOrbFloat 20s ease-in-out infinite reverse;
+}
+
+@keyframes gnOrbFloat {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(20px, -20px) scale(1.05);
+  }
+}
+
+/* ============================================
+   HOVER EFFECTS (GPU Accelerated)
+   ============================================ */
+
+.gn-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.gn-hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Card hover effect */
+.service-card,
+.project-card,
+.feature-card,
+.contact-card {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.service-card:hover,
+.project-card:hover,
+.feature-card:hover,
+.contact-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   BUTTON ANIMATIONS
+   ============================================ */
+
+.btn-primary-custom,
+.btn-secondary-custom,
+.btn-whatsapp {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.btn-primary-custom:hover,
+.btn-whatsapp:hover {
+  transform: translateY(-2px);
+}
+
+/* Subtle shimmer on hover only */
+.btn-primary-custom::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.15),
+      transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.btn-primary-custom:hover::after {
+  left: 100%;
+}
+
+/* ============================================
+   FLOAT ANIMATION (Lightweight)
+   ============================================ */
+
+.gn-float {
+  animation: gnFloatSimple 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes gnFloatSimple {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ============================================
+   STAT COUNTER ANIMATION
+   ============================================ */
+
+.gn-count {
+  animation: gnCountPop 0.5s ease-out;
+}
+
+@keyframes gnCountPop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   IMAGE ANIMATIONS
+   ============================================ */
+
+.hero-image img {
+  animation: gnHeroFloat 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes gnHeroFloat {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+/* ============================================
+   UNDERLINE ANIMATION
+   ============================================ */
+
+.gn-underline-animate {
+  position: relative;
+  display: inline-block;
+}
+
+.gn-underline-animate::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.3s ease;
+}
+
+.gn-underline-animate:hover::after {
+  width: 100%;
+}
+
+/* ============================================
+   RESPONSIVE OPTIMIZATIONS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .gn-gradient-orb--1 {
+    width: 300px;
+    height: 300px;
+  }
+
+  .gn-gradient-orb--2 {
+    width: 250px;
+    height: 250px;
+  }
+
+  /* Reduce animation complexity on mobile */
+  .gn-reveal,
+  .gn-reveal-left,
+  .gn-reveal-right,
+  .gn-reveal-scale {
+    transition-duration: 0.4s;
+  }
+
+  .hero-image img {
+    animation: none;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .gn-reveal,
+  .gn-reveal-left,
+  .gn-reveal-right,
+  .gn-reveal-scale {
+    opacity: 1;
+    transform: none;
+  }
+
+  .gn-gradient-orb {
+    animation: none;
+  }
+
+  .hero-image img {
+    animation: none;
+  }
+
+  .gn-float {
+    animation: none;
+  }
+}
+
+/* ============================================
+   PERFORMANCE HINTS
+   ============================================ */
+
+/* Force GPU acceleration for animated elements */
+.gn-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* ============================================
+   MAP MARKER ANIMATIONS
+   ============================================ */
+
+@keyframes markerPulse {
+  0% {
+    transform: translate(-50%, -100%) scale(1);
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0.4));
+  }
+
+  50% {
+    transform: translate(-50%, -100%) scale(1.1);
+    filter: drop-shadow(0 10px 15px rgba(239, 68, 68, 0.6));
+  }
+
+  100% {
+    transform: translate(-50%, -100%) scale(1);
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0.4));
+  }
+}
+
+.marker-pulse {
+  animation: markerPulse 2s ease-in-out infinite;
+  cursor: grab;
+}
+
+.marker-pulse:active {
+  cursor: grabbing;
+}
+
+.station-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.station-marker-label {
+  background: white;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  color: #1E293B;
+  white-space: nowrap;
+  border: 1px solid #E2E8F0;
+  transform: translateY(-4px);
+  transition: all 0.3s ease;
+}
+
+.premium-pin {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+}
+
+.pin-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(14, 165, 233, 0.2);
+  border: 2px solid var(--primary);
+  animation: pinPulse 2s infinite;
+}
+
+.pin-core {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+  border: 2px solid white;
+}
+
+@keyframes pinPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.premium-pin:hover {
+  transform: scale(1.2);
+}
+
+.premium-pin:hover .station-marker-label {
+  transform: translateY(-8px);
+  opacity: 1;
+}
+
+/* Contain paint for better performance */
+.service-card,
+.project-card,
+.feature-card {
+  contain: layout style paint;
+}
