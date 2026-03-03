@@ -24,10 +24,12 @@ const AdminDashboard = () => {
     const [recentBookings, setRecentBookings] = useState([]);
     const [recentUsers, setRecentUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
+            setError(null);
             try {
                 const [users, stations, bookings, revenue, bills] = await Promise.all([
                     adminUserService.getAll(),
@@ -49,6 +51,7 @@ const AdminDashboard = () => {
                 setRecentUsers(users.slice(0, 5));
             } catch (error) {
                 console.error("Dashboard data fetch error:", error);
+                setError("Failed to load dashboard data. Please check your connection or admin key.");
             } finally {
                 setLoading(false);
             }
@@ -96,6 +99,20 @@ const AdminDashboard = () => {
     );
 
     if (loading) return <div style={{ color: '#64748B' }}>Loading dashboard data...</div>;
+
+    if (error) return (
+        <div style={{ padding: '60px', textAlign: 'center', background: '#FEF2F2', borderRadius: '20px', border: '1px solid #FEE2E2', margin: '20px' }}>
+            <Zap size={48} color="#EF4444" style={{ margin: '0 auto 16px' }} />
+            <h3 style={{ color: '#991B1B', marginBottom: '8px' }}>Dashboard Error</h3>
+            <p style={{ color: '#B91C1C', marginBottom: '24px' }}>{error}</p>
+            <button
+                onClick={() => window.location.reload()}
+                style={{ padding: '10px 20px', borderRadius: '10px', background: '#EF4444', color: 'white', border: 'none', fontWeight: '600', cursor: 'pointer' }}
+            >
+                Retry Loading
+            </button>
+        </div>
+    );
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
