@@ -5,7 +5,7 @@ This guide provides instructions on how to access the Admin and Station Owner po
 ## 🛡️ Admin Portal
 The Admin Portal allows you to manage all users, charging stations, and view site-wide statistics.
 
-- **URL**: [https://evhome.onrender.com/admin/login](https://evhome.onrender.com/admin/login)
+- **URL**: [http://localhost:5173/admin123](http://localhost:5173/admin123)
 - **Access Key**: `EVHOME@123`
 
 ### Features:

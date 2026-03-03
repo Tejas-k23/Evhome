@@ -19,7 +19,7 @@ const AdminLogin = () => {
         setLoading(false);
 
         if (result.success) {
-            navigate('/admin/login/dashboard');
+            navigate('/admin123/dashboard');
         } else {
             setError(result.message);
         }

@@ -4,7 +4,7 @@ import { adminAuthService } from '../services/adminAuthService';
 
 const AdminProtectedRoute = ({ children }) => {
     if (!adminAuthService.isAuthenticated()) {
-        return <Navigate to="/admin/login" replace />;
+        return <Navigate to="/admin123" replace />;
     }
 
     return children;
