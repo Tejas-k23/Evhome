@@ -30,9 +30,9 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('Attempting to connect to MongoDB...');
-  connectDB();
+  await connectDB();
   console.log('Database connection attempt initiated.');
   console.log(`Server running on port ${PORT}`);
 });
