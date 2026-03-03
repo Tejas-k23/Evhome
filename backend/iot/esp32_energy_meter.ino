@@ -32,8 +32,8 @@
 #define SOCKET_NUMBER 1
 
 // Default WiFi credentials (can be updated remotely from owner dashboard)
-#define WIFI_SSID_1 "PrimaryWiFi"
-#define WIFI_PASS_1 "password1"
+#define WIFI_SSID_1 "realme 12 Pro+ 5G"
+#define WIFI_PASS_1 "amey@1103"
 
 #define WIFI_SSID_2 "BackupWiFi1"
 #define WIFI_PASS_2 "password2"
