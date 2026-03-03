@@ -18,7 +18,6 @@ import { adminBookingService } from '../services/adminBookingService';
 const Bookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -31,16 +30,9 @@ const Bookings = () => {
 
     const fetchBookings = async () => {
         setLoading(true);
-        setError(null);
-        try {
-            const data = await adminBookingService.getAll();
-            setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
-        } catch (err) {
-            console.error("Fetch bookings error:", err);
-            setError("Failed to fetch bookings. Please check your connection or admin key.");
-        } finally {
-            setLoading(false);
-        }
+        const data = await adminBookingService.getAll();
+        setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
+        setLoading(false);
     };
 
     const handleUpdateStatus = async (id, status) => {
@@ -120,18 +112,6 @@ const Bookings = () => {
             <div style={{ display: 'grid', gap: '16px' }}>
                 {loading ? (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>Loading bookings...</div>
-                ) : error ? (
-                    <div style={{ padding: '60px', textAlign: 'center', background: '#FEF2F2', borderRadius: '20px', border: '1px solid #FEE2E2' }}>
-                        <XCircle size={48} color="#EF4444" style={{ margin: '0 auto 16px' }} />
-                        <h3 style={{ color: '#991B1B', marginBottom: '8px' }}>Something went wrong</h3>
-                        <p style={{ color: '#B91C1C', marginBottom: '24px' }}>{error}</p>
-                        <button
-                            onClick={fetchBookings}
-                            style={{ padding: '10px 20px', borderRadius: '10px', background: '#EF4444', color: 'white', border: 'none', fontWeight: '600', cursor: 'pointer' }}
-                        >
-                            Try Again
-                        </button>
-                    </div>
                 ) : filteredBookings.length === 0 ? (
                     <div style={{ padding: '60px', textAlign: 'center', background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
                         <Ticket size={48} color="#E2E8F0" style={{ margin: '0 auto 16px' }} />

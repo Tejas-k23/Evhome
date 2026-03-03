@@ -79,35 +79,31 @@ function App() {
           } />
 
           {/* Admin Routes */}
-          <Route path="/admin123">
-            <Route index element={<AdminLogin />} />
-            <Route element={
-              <AdminProtectedRoute>
-                <AdminLayout />
-              </AdminProtectedRoute>
-            }>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="stations" element={<Stations />} />
-              <Route path="users" element={<UsersManagement />} />
-              <Route path="bookings" element={<AdminBookings />} />
-              <Route path="bills" element={<BillsManagement />} />
-            </Route>
+          <Route path="/admin123" element={<AdminLogin />} />
+          <Route path="/admin123" element={
+            <AdminProtectedRoute>
+              <AdminLayout />
+            </AdminProtectedRoute>
+          }>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="stations" element={<Stations />} />
+            <Route path="users" element={<UsersManagement />} />
+            <Route path="bookings" element={<AdminBookings />} />
+            <Route path="bills" element={<BillsManagement />} />
           </Route>
 
           {/* Owner Routes */}
-          <Route path="/owner">
-            <Route index element={<OwnerLogin />} />
-            <Route element={
-              <OwnerProtectedRoute>
-                <OwnerLayout />
-              </OwnerProtectedRoute>
-            }>
-              <Route path="dashboard" element={<OwnerDashboard />} />
-              <Route path="stations" element={<MyStations />} />
-              <Route path="bookings" element={<OwnerBookings />} />
-              <Route path="sessions" element={<SessionsMonitoring />} />
-              <Route path="revenue" element={<RevenueBills />} />
-            </Route>
+          <Route path="/owner" element={<OwnerLogin />} />
+          <Route path="/owner" element={
+            <OwnerProtectedRoute>
+              <OwnerLayout />
+            </OwnerProtectedRoute>
+          }>
+            <Route path="dashboard" element={<OwnerDashboard />} />
+            <Route path="stations" element={<MyStations />} />
+            <Route path="bookings" element={<OwnerBookings />} />
+            <Route path="sessions" element={<SessionsMonitoring />} />
+            <Route path="revenue" element={<RevenueBills />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
