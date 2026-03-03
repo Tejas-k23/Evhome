@@ -9,24 +9,7 @@ const OWNER_TOKEN_KEY = "evhome_owner_token";
 const OWNER_DATA_KEY = "evhome_owner_data";
 
 export const ownerAuthService = {
-    login: async (mobileNumber, otp) => {
-        const response = await fetch(`${API_URL}/owner/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mobileNumber, otp }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
-        }
-        localStorage.setItem(OWNER_TOKEN_KEY, data.token);
-        if (data.owner) {
-            localStorage.setItem(OWNER_DATA_KEY, JSON.stringify(data.owner));
-        }
-        return data.owner || data;
-    },
-
-    loginWithEmail: async (email, password) => {
+    login: async (email, password) => {
         const response = await fetch(`${API_URL}/owner/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

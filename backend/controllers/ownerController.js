@@ -18,8 +18,11 @@ exports.loginOwner = async (req, res, next) => {
 
     const owner = await Owner.findOne({ email }).select('+password');
     if (!owner || !(await owner.matchPassword(password))) {
+      console.log(`[Owner] Login Failed: ${email}`);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
+
+    console.log(`[Owner] Login Success: ${email}`);
 
     res.json({
       success: true,

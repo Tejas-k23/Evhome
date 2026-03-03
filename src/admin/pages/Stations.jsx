@@ -32,7 +32,11 @@ const Stations = () => {
         pricePerKwh: 0,
         status: 'ACTIVE',
         lat: MAPBOX_CONFIG.defaultCenter[1],
-        lng: MAPBOX_CONFIG.defaultCenter[0]
+        lng: MAPBOX_CONFIG.defaultCenter[0],
+        ownerName: '',
+        ownerEmail: '',
+        ownerMobile: '',
+        ownerPassword: ''
     });
 
     const [viewState, setViewState] = useState({
@@ -85,7 +89,11 @@ const Stations = () => {
                 pricePerKwh: 10,
                 status: 'ACTIVE',
                 lat: MAPBOX_CONFIG.defaultCenter[1],
-                lng: MAPBOX_CONFIG.defaultCenter[0]
+                lng: MAPBOX_CONFIG.defaultCenter[0],
+                ownerName: '',
+                ownerEmail: '',
+                ownerMobile: '',
+                ownerPassword: ''
             });
             setViewState({
                 longitude: MAPBOX_CONFIG.defaultCenter[0],
@@ -436,6 +444,55 @@ const Stations = () => {
                                     <p style={{ fontSize: '12px', color: '#64748B' }}>Click on the map or drag the pin to set the exact location.</p>
                                 </div>
                             </div>
+
+                            {!editingStation && (
+                                <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '24px', marginTop: '4px' }}>
+                                    <h4 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px', color: '#1E293B' }}>Owner Account Details</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#64748B' }}>Owner Full Name</label>
+                                            <input
+                                                type="text"
+                                                value={formData.ownerName}
+                                                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                                                placeholder="John Doe"
+                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#64748B' }}>Owner Email (Login UID)</label>
+                                            <input
+                                                type="email"
+                                                value={formData.ownerEmail}
+                                                onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
+                                                placeholder="owner@example.com"
+                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#64748B' }}>Owner Mobile</label>
+                                            <input
+                                                type="tel"
+                                                value={formData.ownerMobile}
+                                                onChange={(e) => setFormData({ ...formData, ownerMobile: e.target.value })}
+                                                placeholder="9876543210"
+                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#64748B' }}>Owner Password</label>
+                                            <input
+                                                type="password"
+                                                value={formData.ownerPassword}
+                                                onChange={(e) => setFormData({ ...formData, ownerPassword: e.target.value })}
+                                                placeholder="••••••••"
+                                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '12px' }}>The owner will use these credentials to log in to the Station Owner Portal.</p>
+                                </div>
+                            )}
 
                             <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                                 <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>

@@ -18,6 +18,7 @@ exports.sendOtp = async (req, res, next) => {
     const otp = TEST_OTP;
     OTP_STORE.set(mobileNumber, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
+    console.log(`[Auth] OTP requested for ${mobileNumber} (${vehicleNumber})`);
     res.json({
       success: true,
       message: 'OTP sent successfully',
@@ -59,6 +60,8 @@ exports.verifyOtp = async (req, res, next) => {
       user.lastActiveAt = new Date();
       await user.save();
     }
+
+    console.log(`[Auth] User Login Success: ${mobileNumber} (${vehicleNumber})`);
 
     res.json({
       success: true,

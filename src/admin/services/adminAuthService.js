@@ -11,7 +11,7 @@ export const adminAuthService = {
         const response = await fetch(`${API_URL}/admin/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ secretKey: key }),
+            body: JSON.stringify({ key }),
         });
         const data = await response.json();
         if (!response.ok) {

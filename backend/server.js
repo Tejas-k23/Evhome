@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 
-connectDB();
+
 
 const app = express();
 
@@ -31,5 +31,8 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  console.log('Attempting to connect to MongoDB...');
+  connectDB();
+  console.log('Database connection attempt initiated.');
   console.log(`Server running on port ${PORT}`);
 });

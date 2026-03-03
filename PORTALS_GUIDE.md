@@ -21,13 +21,7 @@ The Owner Portal is designed for individual station owners to manage their speci
 
 - **URL**: [http://localhost:5173/owner](http://localhost:5173/owner)
 
-### Demo Credentials:
-
-#### Option 1: Mobile Login (Simulated)
-- **Mobile Number**: `9876543210`
-- **OTP**: `123456`
-
-#### Option 2: Email Login
+### Demo Credentials (Email):
 - **Email**: `owner@evhome.com`
 - **Password**: `Owner@123`
 

@@ -1,5 +1,6 @@
 const Admin = require('../models/Admin');
 const User = require('../models/User');
+const Owner = require('../models/Owner');
 const Station = require('../models/Station');
 const Booking = require('../models/Booking');
 const Bill = require('../models/Bill');
@@ -138,7 +139,34 @@ exports.getAllBills = async (req, res, next) => {
 // @route   POST /api/admin/stations
 exports.createStation = async (req, res, next) => {
   try {
-    const station = await Station.create(req.body);
+    const {
+      name, location, lat, lng, socketCount, pricePerKwh, status,
+      ownerName, ownerEmail, ownerMobile, ownerPassword
+    } = req.body;
+
+    let ownerId = null;
+
+    // Handle Owner Creation if details provided
+    if (ownerEmail && ownerPassword) {
+      let owner = await Owner.findOne({ email: ownerEmail.toLowerCase() });
+      if (!owner) {
+        owner = await Owner.create({
+          name: ownerName || name + " Owner",
+          email: ownerEmail,
+          mobileNumber: ownerMobile || "0000000000",
+          password: ownerPassword
+        });
+        console.log(`[Admin] New Owner Created: ${ownerEmail}`);
+      }
+      ownerId = owner._id;
+    }
+
+    const station = await Station.create({
+      name, location, lat, lng, socketCount, pricePerKwh, status,
+      owner: ownerId
+    });
+
+    console.log(`[Admin] Station Created: ${name} (Owner: ${ownerEmail || 'None'})`);
     res.status(201).json({ success: true, station });
   } catch (error) {
     next(error);
