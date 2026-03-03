@@ -97,7 +97,7 @@ const Navbar = memo(() => {
     navigate('/');
   };
 
-  const isAdminRoute = location.pathname.startsWith('/admin123');
+  const isAdminRoute = location.pathname.startsWith('/admin/login');
 
   if (isAdminRoute) return null;
 

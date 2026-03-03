@@ -79,7 +79,7 @@ function App() {
           } />
 
           {/* Admin Routes */}
-          <Route path="/admin123">
+          <Route path="/admin/login">
             <Route index element={<AdminLogin />} />
             <Route element={
               <AdminProtectedRoute>
