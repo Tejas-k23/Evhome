@@ -1,85 +1,54 @@
-const STATIONS_KEY = "evhome_stations";
+/**
+ * Admin Station Service
+ * Manages stations via backend admin API.
+ */
+import { API_URL } from '../../config/apiConfig';
 
-const initialStations = [
-    {
-        id: "st-1",
-        name: "Nexus Hub - Downtown",
-        location: "123 Main St, Central Plaza",
-        lat: 18.5204,
-        lng: 73.8567,
-        socketCount: 4,
-        pricePerKwh: 12.5,
-        status: "ACTIVE",
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-        id: "st-2",
-        name: "Green Charge - North",
-        location: "45 Market Rd, North Wing",
-        lat: 18.5500,
-        lng: 73.8800,
-        socketCount: 2,
-        pricePerKwh: 10.0,
-        status: "ACTIVE",
-        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+const getAdminToken = () => localStorage.getItem('adminToken');
+
+const adminFetch = async (endpoint, options = {}) => {
+    const token = getAdminToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
     }
-];
-
-const getStations = () => {
-    const data = localStorage.getItem(STATIONS_KEY);
-    if (!data) {
-        localStorage.setItem(STATIONS_KEY, JSON.stringify(initialStations));
-        return initialStations;
+    const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Admin API request failed');
     }
-    return JSON.parse(data);
-};
-
-const saveStations = (stations) => {
-    localStorage.setItem(STATIONS_KEY, JSON.stringify(stations));
+    return data;
 };
 
 export const adminStationService = {
     getAll: async () => {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        return getStations();
+        return adminFetch('/stations');
     },
 
     getById: async (id) => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const stations = getStations();
-        return stations.find(s => s.id === id);
+        return adminFetch(`/stations/${id}`);
     },
 
     create: async (stationData) => {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        const stations = getStations();
-        const newStation = {
-            ...stationData,
-            id: `st-${Date.now()}`,
-            createdAt: new Date().toISOString()
-        };
-        stations.push(newStation);
-        saveStations(stations);
-        return newStation;
+        return adminFetch('/admin/stations', {
+            method: 'POST',
+            body: JSON.stringify(stationData),
+        });
     },
 
     update: async (id, stationData) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const stations = getStations();
-        const index = stations.findIndex(s => s.id === id);
-        if (index !== -1) {
-            stations[index] = { ...stations[index], ...stationData };
-            saveStations(stations);
-            return stations[index];
-        }
-        return null;
+        return adminFetch(`/admin/stations/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(stationData),
+        });
     },
 
     delete: async (id) => {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        const stations = getStations();
-        const filtered = stations.filter(s => s.id !== id);
-        saveStations(filtered);
-        return true;
+        return adminFetch(`/admin/stations/${id}`, {
+            method: 'DELETE',
+        });
     }
 };

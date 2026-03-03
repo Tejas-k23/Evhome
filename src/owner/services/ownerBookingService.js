@@ -1,35 +1,40 @@
-const BOOKINGS_KEY = "evhome_bookings";
-const STATIONS_KEY = "evhome_stations";
+/**
+ * Owner Booking Service
+ * Fetches owner's bookings via backend API.
+ */
+import { API_URL } from '../../config/apiConfig';
 
-const getBookings = () => {
-    const data = localStorage.getItem(BOOKINGS_KEY);
-    return data ? JSON.parse(data) : [];
-};
+const getOwnerToken = () => localStorage.getItem('evhome_owner_token');
 
-const saveBookings = (bookings) => {
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+const ownerFetch = async (endpoint, options = {}) => {
+    const token = getOwnerToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Owner API request failed');
+    }
+    return data;
 };
 
 export const ownerBookingService = {
-    getBookingsForOwner: async (ownerId) => {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        const stationsData = localStorage.getItem(STATIONS_KEY);
-        const stations = stationsData ? JSON.parse(stationsData) : [];
-        const ownerStationIds = stations.filter(s => s.ownerId === ownerId).map(s => s.id);
-
-        const bookings = getBookings();
-        return bookings.filter(b => ownerStationIds.includes(b.stationId));
+    getBookingsForOwner: async () => {
+        return ownerFetch('/owner/bookings');
     },
 
     updateBookingStatus: async (bookingId, status) => {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        const bookings = getBookings();
-        const index = bookings.findIndex(b => b.id === bookingId);
-        if (index !== -1) {
-            bookings[index].status = status;
-            saveBookings(bookings);
-            return bookings[index];
-        }
-        throw new Error("Booking not found");
+        const endpoint = status === 'CANCELLED'
+            ? `/bookings/${bookingId}/cancel`
+            : status === 'ACTIVE'
+                ? `/bookings/${bookingId}/start`
+                : `/bookings/${bookingId}/stop`;
+
+        return ownerFetch(endpoint, { method: 'PUT' });
     }
 };

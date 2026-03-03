@@ -29,8 +29,8 @@ const RevenueBills = () => {
             if (!owner) return;
             try {
                 const [revStats, billList] = await Promise.all([
-                    ownerRevenueService.getRevenueStats(owner.id),
-                    ownerRevenueService.getBillsForOwner(owner.id)
+                    ownerRevenueService.getRevenueStats(),
+                    ownerRevenueService.getBillsForOwner()
                 ]);
                 setStats(revStats);
                 setBills(billList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));

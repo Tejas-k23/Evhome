@@ -1,91 +1,54 @@
 /**
- * Mock Booking Service
+ * Booking Service
+ * Handles booking CRUD, charging start/stop, and bills via backend API.
  */
-
-const BOOKINGS_KEY = 'ev_home_bookings';
-const BILLS_KEY = 'ev_home_bills';
-
-const getBookings = () => JSON.parse(localStorage.getItem(BOOKINGS_KEY) || '[]');
-const saveBookings = (bookings) => localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-
-const getBills = () => JSON.parse(localStorage.getItem(BILLS_KEY) || '[]');
-const saveBills = (bills) => localStorage.setItem(BILLS_KEY, JSON.stringify(bills));
+import { apiFetch } from '../config/apiConfig';
 
 export const bookingService = {
-    createBooking: async (userId, startTime, endTime) => {
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const start = new Date(startTime);
-        const end = new Date(endTime);
-        const durationMinutes = Math.round((end - start) / (1000 * 60));
-
-        const newBooking = {
-            id: Date.now().toString(),
-            userId,
-            startTime,
-            endTime,
-            durationMinutes,
-            status: 'BOOKED',
-            createdAt: new Date().toISOString()
-        };
-
-        const bookings = getBookings();
-        bookings.push(newBooking);
-        saveBookings(bookings);
-
-        return { success: true, booking: newBooking };
+    createBooking: async (stationId, socketId, startTime, endTime) => {
+        return apiFetch('/bookings', {
+            method: 'POST',
+            body: JSON.stringify({ stationId, socketId, startTime, endTime }),
+        });
     },
 
-    getUserBookings: async (userId) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const bookings = getBookings();
-        return bookings.filter(b => b.userId === userId).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    getUserBookings: async () => {
+        return apiFetch('/bookings');
+    },
+
+    getBookingById: async (bookingId) => {
+        return apiFetch(`/bookings/${bookingId}`);
     },
 
     startCharging: async (bookingId) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const bookings = getBookings();
-        const index = bookings.findIndex(b => b.id === bookingId);
-        if (index !== -1) {
-            bookings[index].status = 'ACTIVE';
-            saveBookings(bookings);
-            return { success: true, booking: bookings[index] };
-        }
-        return { success: false, message: 'Booking not found' };
+        return apiFetch(`/bookings/${bookingId}/start`, {
+            method: 'PUT',
+        });
     },
 
-    stopCharging: async (bookingId, energyKwh, cost) => {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        const bookings = getBookings();
-        const index = bookings.findIndex(b => b.id === bookingId);
-
-        if (index !== -1) {
-            const booking = bookings[index];
-            booking.status = 'COMPLETED';
-            saveBookings(bookings);
-
-            // Generate Bill
-            const bill = {
-                id: Date.now().toString(),
-                userId: booking.userId,
-                bookingId: booking.id,
-                amount: cost,
-                unitsKwh: energyKwh,
-                createdAt: new Date().toISOString()
-            };
-
-            const bills = getBills();
-            bills.push(bill);
-            saveBills(bills);
-
-            return { success: true, booking, bill };
-        }
-        return { success: false, message: 'Booking not found' };
+    stopCharging: async (bookingId) => {
+        return apiFetch(`/bookings/${bookingId}/stop`, {
+            method: 'PUT',
+        });
     },
 
-    getUserBills: async (userId) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const bills = getBills();
-        return bills.filter(b => b.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    cancelBooking: async (bookingId) => {
+        return apiFetch(`/bookings/${bookingId}/cancel`, {
+            method: 'PUT',
+        });
+    },
+
+    getUserBills: async () => {
+        return apiFetch('/bills');
+    },
+
+    getBillById: async (billId) => {
+        return apiFetch(`/bills/${billId}`);
+    },
+
+    markBillPaid: async (billId) => {
+        return apiFetch(`/bills/${billId}/pay`, {
+            method: 'PUT',
+        });
     }
 };

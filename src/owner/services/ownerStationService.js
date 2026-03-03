@@ -1,133 +1,72 @@
-const STATIONS_KEY = "evhome_stations";
-const SOCKETS_KEY = "evhome_sockets";
+/**
+ * Owner Station Service
+ * Manages owner's stations via backend API.
+ */
+import { API_URL } from '../../config/apiConfig';
 
-const getStations = () => {
-    const data = localStorage.getItem(STATIONS_KEY);
-    return data ? JSON.parse(data) : [];
-};
+const getOwnerToken = () => localStorage.getItem('evhome_owner_token');
 
-const saveStations = (stations) => {
-    localStorage.setItem(STATIONS_KEY, JSON.stringify(stations));
-};
-
-const getSockets = () => {
-    const data = localStorage.getItem(SOCKETS_KEY);
-    return data ? JSON.parse(data) : [];
-};
-
-const saveSockets = (sockets) => {
-    localStorage.setItem(SOCKETS_KEY, JSON.stringify(sockets));
+const ownerFetch = async (endpoint, options = {}) => {
+    const token = getOwnerToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || 'Owner API request failed');
+    }
+    return data;
 };
 
 export const ownerStationService = {
-    getMyStations: async (ownerId) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const stations = getStations();
-        // Seed if empty and this is the demo owner
-        if (stations.length === 0 && ownerId === "owner-1") {
-            const seedStations = [
-                {
-                    id: "st-1",
-                    ownerId: "owner-1",
-                    name: "Downtown Charging Hub",
-                    location: "123 Main St, City Center",
-                    socketCount: 4,
-                    pricePerKwh: 15.5,
-                    status: "ACTIVE",
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    id: "st-2",
-                    ownerId: "owner-1",
-                    name: "Suburban Power Point",
-                    location: "456 Oak Ave, Suburbia",
-                    socketCount: 2,
-                    pricePerKwh: 12.0,
-                    status: "ACTIVE",
-                    createdAt: new Date().toISOString()
-                }
-            ];
-            saveStations(seedStations);
-            return seedStations;
-        }
-        return stations.filter(s => s.ownerId === ownerId);
+    getMyStations: async () => {
+        return ownerFetch('/owner/stations');
     },
 
-    createStation: async (ownerId, stationData) => {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        const stations = getStations();
-        const newStation = {
-            ...stationData,
-            id: `st-${Date.now()}`,
-            ownerId,
-            createdAt: new Date().toISOString()
-        };
-        stations.push(newStation);
-        saveStations(stations);
-
-        // Auto-generate sockets
-        const sockets = getSockets();
-        for (let i = 1; i <= newStation.socketCount; i++) {
-            sockets.push({
-                id: `sock-${Date.now()}-${i}`,
-                stationId: newStation.id,
-                socketNumber: i,
-                status: "AVAILABLE"
-            });
-        }
-        saveSockets(sockets);
-
-        return newStation;
+    createStation: async (stationData) => {
+        return ownerFetch('/owner/stations', {
+            method: 'POST',
+            body: JSON.stringify(stationData),
+        });
     },
 
     updateStation: async (stationId, stationData) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const stations = getStations();
-        const index = stations.findIndex(s => s.id === stationId);
-        if (index !== -1) {
-            stations[index] = { ...stations[index], ...stationData };
-            saveStations(stations);
-            return stations[index];
-        }
-        throw new Error("Station not found");
+        return ownerFetch(`/owner/stations/${stationId}`, {
+            method: 'PUT',
+            body: JSON.stringify(stationData),
+        });
     },
 
     getSocketsByStation: async (stationId) => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const sockets = getSockets();
-        const stationSockets = sockets.filter(s => s.stationId === stationId);
-
-        if (stationSockets.length === 0) {
-            // Seed sockets if they don't exist for this station
-            const stations = getStations();
-            const station = stations.find(s => s.id === stationId);
-            if (station) {
-                const newSockets = [];
-                for (let i = 1; i <= station.socketCount; i++) {
-                    newSockets.push({
-                        id: `sock-${stationId}-${i}`,
-                        stationId: stationId,
-                        socketNumber: i,
-                        status: "AVAILABLE"
-                    });
-                }
-                const allSockets = [...sockets, ...newSockets];
-                saveSockets(allSockets);
-                return newSockets;
-            }
-        }
-        return stationSockets;
+        return ownerFetch(`/owner/stations/${stationId}/sockets`);
     },
 
     updateSocketStatus: async (socketId, status) => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const sockets = getSockets();
-        const index = sockets.findIndex(s => s.id === socketId);
-        if (index !== -1) {
-            sockets[index].status = status;
-            saveSockets(sockets);
-            return sockets[index];
-        }
-        throw new Error("Socket not found");
+        return ownerFetch(`/owner/sockets/${socketId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status }),
+        });
+    },
+
+    getStationWifi: async (stationId) => {
+        return ownerFetch(`/owner/stations/${stationId}/wifi`);
+    },
+
+    updateStationWifi: async (stationId, wifiNetworks) => {
+        return ownerFetch(`/owner/stations/${stationId}/wifi`, {
+            method: 'PUT',
+            body: JSON.stringify({ wifiNetworks }),
+        });
+    },
+
+    regenerateApiKey: async (stationId) => {
+        return ownerFetch(`/owner/stations/${stationId}/api-key`, {
+            method: 'POST',
+        });
     }
 };

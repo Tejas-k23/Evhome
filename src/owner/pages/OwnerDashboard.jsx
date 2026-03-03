@@ -32,9 +32,9 @@ const OwnerDashboard = () => {
             if (!owner) return;
             try {
                 const [myStations, myBookings, revStats] = await Promise.all([
-                    ownerStationService.getMyStations(owner.id),
-                    ownerBookingService.getBookingsForOwner(owner.id),
-                    ownerRevenueService.getRevenueStats(owner.id)
+                    ownerStationService.getMyStations(),
+                    ownerBookingService.getBookingsForOwner(),
+                    ownerRevenueService.getRevenueStats()
                 ]);
 
                 setStats({

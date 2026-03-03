@@ -36,7 +36,7 @@ const MyStations = () => {
         if (!owner) return;
         setLoading(true);
         try {
-            const data = await ownerStationService.getMyStations(owner.id);
+            const data = await ownerStationService.getMyStations();
             setStations(data);
         } catch (err) {
             console.error(err);
@@ -78,7 +78,7 @@ const MyStations = () => {
             if (editingStation) {
                 await ownerStationService.updateStation(editingStation.id, formData);
             } else {
-                await ownerStationService.createStation(owner.id, formData);
+                await ownerStationService.createStation(formData);
             }
             setIsModalOpen(false);
             fetchStations();

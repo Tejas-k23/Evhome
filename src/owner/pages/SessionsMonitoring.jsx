@@ -25,7 +25,7 @@ const SessionsMonitoring = () => {
     const fetchSessions = async () => {
         if (!owner) return;
         try {
-            const data = await ownerSessionService.getSessionsForOwner(owner.id);
+            const data = await ownerSessionService.getSessionsForOwner();
             setSessions(data);
         } catch (err) {
             console.error(err);
@@ -37,34 +37,10 @@ const SessionsMonitoring = () => {
     useEffect(() => {
         fetchSessions();
 
-        // Start live updates for active sessions
+        // Poll for live session updates from the API
         updateInterval.current = setInterval(() => {
-            const currentSessions = JSON.parse(localStorage.getItem('evhome_sessions') || '[]');
-            const stations = JSON.parse(localStorage.getItem('evhome_stations') || '[]');
-
-            const updated = currentSessions.map(sess => {
-                const station = stations.find(s => s.id === sess.stationId);
-                const price = station ? station.pricePerKwh : 15.5;
-
-                // Simulate live IoT data update
-                const current = 16 + (Math.random() * 8);
-                const voltage = 225 + (Math.random() * 10);
-                const addedEnergy = (current * voltage * (2 / 3600)) / 1000; // 2 sec increment
-
-                const newEnergy = parseFloat((sess.energyKwh + addedEnergy).toFixed(4));
-                return {
-                    ...sess,
-                    current: parseFloat(current.toFixed(1)),
-                    voltage: parseFloat(voltage.toFixed(1)),
-                    energyKwh: newEnergy,
-                    cost: parseFloat((newEnergy * price).toFixed(2)),
-                    updatedAt: new Date().toISOString()
-                };
-            });
-
-            localStorage.setItem('evhome_sessions', JSON.stringify(updated));
             fetchSessions();
-        }, 2000);
+        }, 3000);
 
         return () => clearInterval(updateInterval.current);
     }, [owner]);

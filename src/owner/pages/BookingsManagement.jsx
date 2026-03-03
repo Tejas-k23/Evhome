@@ -25,7 +25,7 @@ const BookingsManagement = () => {
         if (!owner) return;
         setLoading(true);
         try {
-            const data = await ownerBookingService.getBookingsForOwner(owner.id);
+            const data = await ownerBookingService.getBookingsForOwner();
             setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
         } catch (err) {
             console.error(err);
@@ -43,9 +43,8 @@ const BookingsManagement = () => {
             await ownerBookingService.updateBookingStatus(bookingId, status);
 
             if (status === 'ACTIVE') {
-                // If starting, create a session
-                const booking = bookings.find(b => b.id === bookingId);
-                await ownerSessionService.startSession(bookingId, booking.stationId);
+                // Starting is handled by the backend via bookings/:id/start
+                await ownerSessionService.startSession(bookingId);
             }
             fetchBookings();
         } catch (err) {
@@ -55,13 +54,8 @@ const BookingsManagement = () => {
 
     const stopCharging = async (booking) => {
         try {
-            const session = await ownerSessionService.getSessionsForOwner(owner.id);
-            const activeSession = session.find(s => s.bookingId === booking.id);
-            if (activeSession) {
-                await ownerSessionService.stopSession(activeSession.id, booking.id, booking.userId, booking.stationId);
-                await ownerBookingService.updateBookingStatus(booking.id, 'COMPLETED');
-                fetchBookings();
-            }
+            await ownerSessionService.stopSession(booking.id);
+            fetchBookings();
         } catch (err) {
             alert(err.message);
         }
