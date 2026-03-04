@@ -5,11 +5,11 @@
 import { API_URL } from '../config/apiConfig';
 
 export const authService = {
-    sendOtp: async (vehicleNumber, mobileNumber) => {
+    sendOtp: async (vehicleNumber, mobileNumber, intent = 'signup') => {
         const response = await fetch(`${API_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleNumber, mobileNumber }),
+            body: JSON.stringify({ vehicleNumber, mobileNumber, intent }),
         });
         const data = await response.json();
         if (!response.ok) {
@@ -18,11 +18,11 @@ export const authService = {
         return data;
     },
 
-    verifyOtp: async (vehicleNumber, mobileNumber, otp) => {
+    verifyOtp: async (vehicleNumber, mobileNumber, otp, intent = 'signup') => {
         const response = await fetch(`${API_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleNumber, mobileNumber, otp }),
+            body: JSON.stringify({ vehicleNumber, mobileNumber, otp, intent }),
         });
         const data = await response.json();
         if (!response.ok) {

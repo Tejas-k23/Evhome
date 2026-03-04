@@ -5,6 +5,7 @@ import { authService } from '../services/authService';
 
 const Auth = () => {
     const [activeTab, setActiveTab] = useState('signup');
+    const [intent, setIntent] = useState('signup'); // signup | login (fixed when OTP is sent)
     const [step, setStep] = useState(1); // 1: details, 2: otp
     const [vehicleNumber, setVehicleNumber] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
@@ -65,7 +66,7 @@ const Auth = () => {
         setLoading(true);
         setError('');
         try {
-            const res = await authService.verifyOtp(vehicleNumber, mobileNumber, otp);
+            const res = await authService.verifyOtp(vehicleNumber, mobileNumber, otp, intent);
             if (res.success) {
                 login(res.user, res.token);
                 navigate(from, { replace: true });
@@ -73,7 +74,7 @@ const Auth = () => {
                 setError(res.message);
             }
         } catch (err) {
-            setError("Verification failed.");
+            setError(err.message || "Verification failed.");
         } finally {
             setLoading(false);
         }
@@ -104,15 +105,17 @@ const Auth = () => {
                                 <>
                                     <div className="d-flex mb-4" style={{ background: 'var(--gray-50)', borderRadius: 'var(--radius-full)', padding: '5px' }}>
                                         <button
+                                            type="button"
                                             className={`btn w-50 ${activeTab === 'signup' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => setActiveTab('signup')}
+                                            onClick={() => { setActiveTab('signup'); setError(''); if (step === 2) { setStep(1); setOtp(''); setTestOtp(''); } }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Signup
                                         </button>
                                         <button
+                                            type="button"
                                             className={`btn w-50 ${activeTab === 'login' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => setActiveTab('login')}
+                                            onClick={() => { setActiveTab('login'); setError(''); if (step === 2) { setStep(1); setOtp(''); setTestOtp(''); } }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Login
@@ -176,7 +179,7 @@ const Auth = () => {
                                         className="btn-primary-custom w-100 mb-3"
                                         disabled={loading}
                                     >
-                                        {loading ? 'Verifying...' : 'Verify & Login'}
+                                        {loading ? 'Verifying...' : intent === 'login' ? 'Verify & Login' : 'Verify & Create Account'}
                                     </button>
                                     <button
                                         type="button"

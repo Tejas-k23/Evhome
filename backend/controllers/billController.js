@@ -39,17 +39,23 @@ exports.getBillById = async (req, res, next) => {
   }
 };
 
-// @desc    Mark bill as paid
+// @desc    Mark bill paid/unpaid (user: own bills, PAID only; admin: any bill, PAID or UNPAID)
 // @route   PUT /api/bills/:id/pay
 exports.markBillPaid = async (req, res, next) => {
   try {
-    const bill = await Bill.findOne({ _id: req.params.id, user: req.userId });
+    const isAdmin = req.userRole === 'admin';
+    const query = isAdmin ? { _id: req.params.id } : { _id: req.params.id, user: req.userId };
+    const bill = await Bill.findOne(query);
 
     if (!bill) {
       return res.status(404).json({ success: false, message: 'Bill not found' });
     }
 
-    bill.paymentStatus = 'PAID';
+    const newStatus = isAdmin && req.body.paymentStatus ? req.body.paymentStatus : 'PAID';
+    if (!['PAID', 'UNPAID'].includes(newStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid payment status' });
+    }
+    bill.paymentStatus = newStatus;
     await bill.save();
 
     res.json({ success: true, bill });

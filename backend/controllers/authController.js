@@ -5,20 +5,33 @@ const { generateToken, normalizeVehicleNumber } = require('../utils/helpers');
 const OTP_STORE = new Map();
 const TEST_OTP = '123456';
 
-// @desc    Send OTP to mobile number
+// @desc    Send OTP to mobile number (signup or login)
 // @route   POST /api/auth/send-otp
 exports.sendOtp = async (req, res, next) => {
   try {
-    const { vehicleNumber, mobileNumber } = req.body;
+    const { vehicleNumber, mobileNumber, intent } = req.body;
+    const mode = intent === 'login' ? 'login' : 'signup';
 
     if (!vehicleNumber || !mobileNumber) {
       return res.status(400).json({ success: false, message: 'Vehicle number and mobile number are required' });
     }
 
+    const normalized = normalizeVehicleNumber(vehicleNumber);
+
+    if (mode === 'login') {
+      const user = await User.findOne({ vehicleNumber: normalized, mobileNumber });
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'No account found with this vehicle and mobile number. Please sign up first.',
+        });
+      }
+    }
+
     const otp = TEST_OTP;
     OTP_STORE.set(mobileNumber, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
-    console.log(`[Auth] OTP requested for ${mobileNumber} (${vehicleNumber})`);
+    console.log(`[Auth] OTP requested for ${mobileNumber} (${vehicleNumber}) [${mode}]`);
     res.json({
       success: true,
       message: 'OTP sent successfully',
@@ -29,11 +42,12 @@ exports.sendOtp = async (req, res, next) => {
   }
 };
 
-// @desc    Verify OTP and login/register user
+// @desc    Verify OTP and login or register user (signup vs login enforced)
 // @route   POST /api/auth/verify-otp
 exports.verifyOtp = async (req, res, next) => {
   try {
-    const { vehicleNumber, mobileNumber, otp } = req.body;
+    const { vehicleNumber, mobileNumber, otp, intent } = req.body;
+    const mode = intent === 'login' ? 'login' : 'signup';
 
     if (!vehicleNumber || !mobileNumber || !otp) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
@@ -51,17 +65,30 @@ exports.verifyOtp = async (req, res, next) => {
     const normalized = normalizeVehicleNumber(vehicleNumber);
     let user = await User.findOne({ vehicleNumber: normalized });
 
-    if (!user) {
+    if (mode === 'login') {
+      if (!user || user.mobileNumber !== mobileNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'No account found. Please sign up first.',
+        });
+      }
+      user.lastActiveAt = new Date();
+      await user.save();
+    } else {
+      // signup
+      if (user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Already registered with this vehicle number. Please login instead.',
+        });
+      }
       user = await User.create({
         vehicleNumber: normalized,
         mobileNumber,
       });
-    } else {
-      user.lastActiveAt = new Date();
-      await user.save();
     }
 
-    console.log(`[Auth] User Login Success: ${mobileNumber} (${vehicleNumber})`);
+    console.log(`[Auth] User ${mode === 'login' ? 'Login' : 'Signup'} Success: ${mobileNumber} (${vehicleNumber})`);
 
     res.json({
       success: true,

@@ -21,7 +21,7 @@ const AdminLayout = () => {
 
     const handleLogout = () => {
         adminAuthService.logout();
-        navigate('/admin123');
+        navigate('/admin123/login');
     };
 
     const menuItems = [

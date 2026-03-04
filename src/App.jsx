@@ -79,7 +79,7 @@ function App() {
           } />
 
           {/* Admin Routes */}
-          <Route path="/admin123" element={<AdminLogin />} />
+          <Route path="/admin123/login" element={<AdminLogin />} />
           <Route path="/admin123" element={
             <AdminProtectedRoute>
               <AdminLayout />
@@ -93,7 +93,7 @@ function App() {
           </Route>
 
           {/* Owner Routes */}
-          <Route path="/owner" element={<OwnerLogin />} />
+          <Route path="/owner/login" element={<OwnerLogin />} />
           <Route path="/owner" element={
             <OwnerProtectedRoute>
               <OwnerLayout />

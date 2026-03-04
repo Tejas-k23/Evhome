@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN, MAPBOX_CONFIG } from '../config/mapboxConfig';
 import { useAuth } from '../context/authContext';
 import { bookingService } from '../services/bookingService';
-import { adminStationService } from '../admin/services/adminStationService';
+import { stationService } from '../services/stationService';
 import { Calendar, Clock, MapPin, Search, ChevronRight } from 'lucide-react';
 
 const BookSlot = () => {
@@ -30,8 +30,9 @@ const BookSlot = () => {
 
     useEffect(() => {
         const fetchStations = async () => {
-            const data = await adminStationService.getAll();
-            const activeStations = data.filter(s => s.status === 'ACTIVE');
+            const data = await stationService.getAll();
+            const list = Array.isArray(data) ? data : (data?.stations || []);
+            const activeStations = list.filter(s => s.status === 'ACTIVE');
             setStations(activeStations);
             setFilteredStations(activeStations);
         };
@@ -82,7 +83,7 @@ const BookSlot = () => {
         setLoading(true);
         setError('');
         try {
-            const res = await bookingService.createBooking(currentUser.id, startTime, endTime, selectedStation.id);
+            const res = await bookingService.createBooking(selectedStation.id, null, startTime, endTime);
             if (res.success) {
                 navigate('/dashboard');
             } else {

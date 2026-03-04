@@ -23,7 +23,7 @@ const OwnerLayout = () => {
 
     const handleLogout = () => {
         ownerAuthService.logout();
-        navigate('/owner');
+        navigate('/owner/login');
     };
 
     const menuItems = [

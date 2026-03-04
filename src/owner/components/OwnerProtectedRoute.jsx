@@ -21,7 +21,7 @@ const OwnerProtectedRoute = ({ children }) => {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/owner" state={{ from: location }} replace />;
+        return <Navigate to="/owner/login" state={{ from: location }} replace />;
     }
 
     return children;

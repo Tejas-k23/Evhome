@@ -3,6 +3,16 @@ const Station = require('../models/Station');
 const Bill = require('../models/Bill');
 const Session = require('../models/Session');
 
+// Helper: resolve booking for current user (owner of station or admin can act on any)
+const getBookingForAction = async (bookingId, userId, userRole) => {
+  const booking = await Booking.findById(bookingId).populate('station', 'owner');
+  if (!booking) return null;
+  if (userRole === 'admin') return booking;
+  if (booking.user && booking.user.toString() === userId) return booking;
+  if (userRole === 'owner' && booking.station && booking.station.owner && booking.station.owner.toString() === userId) return booking;
+  return null;
+};
+
 // @desc    Create a new booking
 // @route   POST /api/bookings
 exports.createBooking = async (req, res, next) => {
@@ -61,12 +71,11 @@ exports.getBookingById = async (req, res, next) => {
   }
 };
 
-// @desc    Start charging (change status to ACTIVE)
+// @desc    Start charging (change status to ACTIVE). User, owner, or admin.
 // @route   PUT /api/bookings/:id/start
 exports.startCharging = async (req, res, next) => {
   try {
-    const booking = await Booking.findOne({ _id: req.params.id, user: req.userId });
-
+    const booking = await getBookingForAction(req.params.id, req.userId, req.userRole);
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
@@ -90,13 +99,12 @@ exports.startCharging = async (req, res, next) => {
   }
 };
 
-// @desc    Stop charging (complete booking, generate bill)
+// @desc    Stop charging (complete booking, generate bill). User, owner, or admin.
 // @route   PUT /api/bookings/:id/stop
 exports.stopCharging = async (req, res, next) => {
   try {
     const { energyKwh, cost } = req.body;
-    const booking = await Booking.findOne({ _id: req.params.id, user: req.userId });
-
+    const booking = await getBookingForAction(req.params.id, req.userId, req.userRole);
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
@@ -111,7 +119,7 @@ exports.stopCharging = async (req, res, next) => {
     await booking.save();
 
     const bill = await Bill.create({
-      user: req.userId,
+      user: booking.user,
       booking: booking._id,
       amount: cost || 0,
       unitsKwh: energyKwh || 0,
@@ -129,12 +137,11 @@ exports.stopCharging = async (req, res, next) => {
   }
 };
 
-// @desc    Cancel a booking
+// @desc    Cancel a booking. User, owner, or admin.
 // @route   PUT /api/bookings/:id/cancel
 exports.cancelBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.findOne({ _id: req.params.id, user: req.userId });
-
+    const booking = await getBookingForAction(req.params.id, req.userId, req.userRole);
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }

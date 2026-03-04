@@ -25,18 +25,21 @@ const adminFetch = async (endpoint, options = {}) => {
 
 export const adminBillingService = {
     getAll: async () => {
-        return adminFetch('/admin/bills');
+        const data = await adminFetch('/admin/bills');
+        return data.bills || data;
     },
 
     updatePaymentStatus: async (id, status) => {
         return adminFetch(`/bills/${id}/pay`, {
             method: 'PUT',
+            body: JSON.stringify({ paymentStatus: status }),
         });
     },
 
     getTotalRevenue: async () => {
-        const bills = await adminFetch('/admin/bills');
-        return bills
+        const data = await adminFetch('/admin/bills');
+        const bills = data.bills || data;
+        return (Array.isArray(bills) ? bills : [])
             .filter(b => b.paymentStatus === "PAID")
             .reduce((sum, b) => sum + b.amount, 0);
     }

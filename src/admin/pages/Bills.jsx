@@ -39,15 +39,17 @@ const Bills = () => {
 
     const handleTogglePayment = async (bill) => {
         const newStatus = bill.paymentStatus === 'PAID' ? 'UNPAID' : 'PAID';
-        await adminBillingService.updatePaymentStatus(bill.id, newStatus);
+        await adminBillingService.updatePaymentStatus(bill._id || bill.id, newStatus);
         showToast(`Bill marked as ${newStatus}`);
         fetchBills();
     };
 
-    const filteredBills = bills.filter(b =>
-        b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.userId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredBills = bills.filter(b => {
+        const id = (b._id || b.id || '').toString();
+        const userId = (b.user?._id || b.userId || b.user || '').toString();
+        return id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            userId.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -122,9 +124,9 @@ const Bills = () => {
                             </thead>
                             <tbody>
                                 {filteredBills.map((bill) => (
-                                    <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <tr key={bill._id || bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '16px 24px' }}>
-                                            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1E293B' }}>{bill.id}</p>
+                                            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1E293B' }}>#{String(bill._id || bill.id).slice(-8)}</p>
                                             <p style={{ margin: 0, fontSize: '12px', color: '#94A3B8' }}>{new Date(bill.createdAt).toLocaleDateString()}</p>
                                         </td>
                                         <td style={{ padding: '16px 24px' }}>
