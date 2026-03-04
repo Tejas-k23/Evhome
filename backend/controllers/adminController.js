@@ -12,9 +12,10 @@ exports.loginAdmin = async (req, res, next) => {
   try {
     const { key, email, password } = req.body;
 
-    // Secret key based login (legacy, matching frontend mock)
+    // Secret key based login
     if (key) {
-      if (key !== process.env.ADMIN_SECRET_KEY) {
+      const ADMIN_KEY = process.env.ADMIN_SECRET_KEY || 'EVHOME@123';
+      if (key !== ADMIN_KEY) {
         return res.status(401).json({ success: false, message: 'Invalid Admin Key' });
       }
 

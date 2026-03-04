@@ -29,7 +29,12 @@ export const apiFetch = async (endpoint, options = {}) => {
         headers,
     });
 
-    const data = await response.json();
+    let data;
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error(`Unexpected non-JSON response from ${endpoint} (status ${response.status})`);
+    }
 
     if (!response.ok) {
         throw new Error(data.message || data.error || 'API request failed');

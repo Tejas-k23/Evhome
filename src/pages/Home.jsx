@@ -192,8 +192,14 @@ function Home() {
 
   useEffect(() => {
     const fetchStations = async () => {
-      const data = await adminStationService.getAll();
-      setStations(data.filter(s => s.status === 'ACTIVE'));
+      try {
+        const data = await adminStationService.getAll();
+        const arr = Array.isArray(data) ? data : [];
+        setStations(arr.filter(s => s.status === 'ACTIVE'));
+      } catch (error) {
+        console.error("Failed to fetch stations:", error);
+        setStations([]);
+      }
     };
     fetchStations();
   }, []);

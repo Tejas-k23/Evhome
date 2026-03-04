@@ -30,23 +30,28 @@ const AdminDashboard = () => {
             setLoading(true);
             try {
                 const [users, stations, bookings, revenue, bills] = await Promise.all([
-                    adminUserService.getAll(),
-                    adminStationService.getAll(),
-                    adminBookingService.getAll(),
-                    adminBillingService.getTotalRevenue(),
-                    adminBillingService.getAll()
+                    adminUserService.getAll().catch(() => []),
+                    adminStationService.getAll().catch(() => []),
+                    adminBookingService.getAll().catch(() => []),
+                    adminBillingService.getTotalRevenue().catch(() => 0),
+                    adminBillingService.getAll().catch(() => [])
                 ]);
 
+                const usersArr = Array.isArray(users) ? users : [];
+                const stationsArr = Array.isArray(stations) ? stations : [];
+                const bookingsArr = Array.isArray(bookings) ? bookings : [];
+                const billsArr = Array.isArray(bills) ? bills : [];
+
                 setStats({
-                    totalUsers: users.length,
-                    totalStations: stations.length,
-                    activeBookings: bookings.filter(b => b.status === "ACTIVE").length,
-                    completedSessions: bookings.filter(b => b.status === "COMPLETED").length,
-                    totalRevenue: revenue
+                    totalUsers: usersArr.length,
+                    totalStations: stationsArr.length,
+                    activeBookings: bookingsArr.filter(b => b.status === "ACTIVE").length,
+                    completedSessions: bookingsArr.filter(b => b.status === "COMPLETED").length,
+                    totalRevenue: typeof revenue === 'number' ? revenue : 0
                 });
 
-                setRecentBookings(bookings.slice(0, 5));
-                setRecentUsers(users.slice(0, 5));
+                setRecentBookings(bookingsArr.slice(0, 5));
+                setRecentUsers(usersArr.slice(0, 5));
             } catch (error) {
                 console.error("Dashboard data fetch error:", error);
             } finally {

@@ -27,25 +27,39 @@ const Users = () => {
 
     const fetchUsers = async () => {
         setLoading(true);
-        const data = await adminUserService.getAll();
-        setUsers(data);
-        setLoading(false);
+        try {
+            const data = await adminUserService.getAll();
+            setUsers(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+            setUsers([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleViewUser = async (user) => {
         setSelectedUser(user);
         setIsModalOpen(true);
 
-        // Fetch user related data
-        const [bookings, bills] = await Promise.all([
-            adminBookingService.getAll(),
-            adminBillingService.getAll()
-        ]);
+        try {
+            const [bookings, bills] = await Promise.all([
+                adminBookingService.getAll().catch(() => []),
+                adminBillingService.getAll().catch(() => [])
+            ]);
 
-        setUserDetails({
-            bookings: bookings.filter(b => b.userId === user.id),
-            bills: bills.filter(b => b.userId === user.id)
-        });
+            const bookingsArr = Array.isArray(bookings) ? bookings : [];
+            const billsArr = Array.isArray(bills) ? bills : [];
+            const userId = user._id || user.id;
+
+            setUserDetails({
+                bookings: bookingsArr.filter(b => (b.userId || b.user) === userId),
+                bills: billsArr.filter(b => (b.userId || b.user) === userId)
+            });
+        } catch (error) {
+            console.error("Failed to fetch user details:", error);
+            setUserDetails({ bookings: [], bills: [] });
+        }
     };
 
     const filteredUsers = users.filter(u =>

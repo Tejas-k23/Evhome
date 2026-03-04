@@ -16,7 +16,12 @@ const adminFetch = async (endpoint, options = {}) => {
         headers['Authorization'] = `Bearer ${token}`;
     }
     const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
-    const data = await response.json();
+    let data;
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error(`Unexpected non-JSON response from ${endpoint} (status ${response.status})`);
+    }
     if (!response.ok) {
         throw new Error(data.message || 'Admin API request failed');
     }
@@ -25,11 +30,12 @@ const adminFetch = async (endpoint, options = {}) => {
 
 export const adminUserService = {
     getAll: async () => {
-        return adminFetch('/admin/users');
+        const data = await adminFetch('/admin/users');
+        return data.users || data;
     },
 
     getById: async (id) => {
-        const users = await adminFetch('/admin/users');
+        const users = await adminUserService.getAll();
         return users.find(u => u._id === id || u.id === id) || null;
     },
 

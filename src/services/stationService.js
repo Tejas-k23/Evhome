@@ -4,10 +4,18 @@
  */
 import { API_URL } from '../config/apiConfig';
 
+const safeParse = async (response, context) => {
+    try {
+        return await response.json();
+    } catch {
+        throw new Error(`Unexpected non-JSON response from ${context} (status ${response.status})`);
+    }
+};
+
 export const stationService = {
     getAll: async () => {
         const response = await fetch(`${API_URL}/stations`);
-        const data = await response.json();
+        const data = await safeParse(response, '/stations');
         if (!response.ok) {
             throw new Error(data.message || 'Failed to fetch stations');
         }
@@ -16,7 +24,7 @@ export const stationService = {
 
     getById: async (id) => {
         const response = await fetch(`${API_URL}/stations/${id}`);
-        const data = await response.json();
+        const data = await safeParse(response, `/stations/${id}`);
         if (!response.ok) {
             throw new Error(data.message || 'Station not found');
         }
@@ -25,7 +33,7 @@ export const stationService = {
 
     search: async (query) => {
         const response = await fetch(`${API_URL}/stations/search?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
+        const data = await safeParse(response, '/stations/search');
         if (!response.ok) {
             throw new Error(data.message || 'Search failed');
         }

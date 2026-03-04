@@ -51,9 +51,15 @@ const Stations = () => {
 
     const fetchStations = async () => {
         setLoading(true);
-        const data = await adminStationService.getAll();
-        setStations(data);
-        setLoading(false);
+        try {
+            const data = await adminStationService.getAll();
+            setStations(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to fetch stations:", error);
+            setStations([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const showToast = (message) => {
