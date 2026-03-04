@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { authService } from '../services/authService';
@@ -10,14 +10,24 @@ const Auth = () => {
     const [vehicleNumber, setVehicleNumber] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
     const [otp, setOtp] = useState('');
+    const [otpId, setOtpId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [testOtp, setTestOtp] = useState('');
+    const [resendTimer, setResendTimer] = useState(0);
 
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || '/dashboard';
+
+    const timerRef = useRef(null);
+
+    useEffect(() => {
+        if (resendTimer > 0) {
+            timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+        }
+        return () => clearTimeout(timerRef.current);
+    }, [resendTimer]);
 
     const handleVehicleChange = (e) => {
         let val = e.target.value.toUpperCase();
@@ -32,7 +42,7 @@ const Auth = () => {
     };
 
     const handleSendOtp = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         const err = validateDetails();
         if (err) {
             setError(err);
@@ -42,15 +52,17 @@ const Auth = () => {
         setLoading(true);
         setError('');
         try {
-            const res = await authService.sendOtp(vehicleNumber, mobileNumber);
+            const res = await authService.sendOtp(vehicleNumber, mobileNumber, activeTab);
             if (res.success) {
+                setIntent(activeTab);
+                setOtpId(res.otpId);
                 setStep(2);
-                setTestOtp(res.testOtp);
+                setResendTimer(30);
             } else {
                 setError(res.message);
             }
         } catch (err) {
-            setError("Failed to send OTP. Please try again.");
+            setError(err.message || "Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -66,7 +78,7 @@ const Auth = () => {
         setLoading(true);
         setError('');
         try {
-            const res = await authService.verifyOtp(vehicleNumber, mobileNumber, otp, intent);
+            const res = await authService.verifyOtp(vehicleNumber, mobileNumber, otp, otpId, intent);
             if (res.success) {
                 login(res.user, res.token);
                 navigate(from, { replace: true });
@@ -107,7 +119,7 @@ const Auth = () => {
                                         <button
                                             type="button"
                                             className={`btn w-50 ${activeTab === 'signup' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => { setActiveTab('signup'); setError(''); if (step === 2) { setStep(1); setOtp(''); setTestOtp(''); } }}
+                                            onClick={() => { setActiveTab('signup'); setError(''); if (step === 2) { setStep(1); setOtp(''); setOtpId(''); } }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Signup
@@ -115,7 +127,7 @@ const Auth = () => {
                                         <button
                                             type="button"
                                             className={`btn w-50 ${activeTab === 'login' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => { setActiveTab('login'); setError(''); if (step === 2) { setStep(1); setOtp(''); setTestOtp(''); } }}
+                                            onClick={() => { setActiveTab('login'); setError(''); if (step === 2) { setStep(1); setOtp(''); setOtpId(''); } }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Login
@@ -169,9 +181,20 @@ const Auth = () => {
                                             style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)', fontSize: '1.2rem', letterSpacing: '8px' }}
                                         />
                                         <div className="mt-3 text-center">
-                                            <span className="badge bg-info text-dark" style={{ padding: '8px 12px' }}>
-                                                Test OTP: {testOtp}
-                                            </span>
+                                            {resendTimer > 0 ? (
+                                                <span className="text-muted small">
+                                                    Resend OTP in {resendTimer}s
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-link p-0 small text-primary"
+                                                    disabled={loading}
+                                                    onClick={handleSendOtp}
+                                                >
+                                                    Resend OTP
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     <button

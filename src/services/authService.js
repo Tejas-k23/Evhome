@@ -18,11 +18,11 @@ export const authService = {
         return data;
     },
 
-    verifyOtp: async (vehicleNumber, mobileNumber, otp, intent = 'signup') => {
+    verifyOtp: async (vehicleNumber, mobileNumber, otp, otpId, intent = 'signup') => {
         const response = await fetch(`${API_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleNumber, mobileNumber, otp, intent }),
+            body: JSON.stringify({ vehicleNumber, mobileNumber, otp, otpId, intent }),
         });
         const data = await response.json();
         if (!response.ok) {

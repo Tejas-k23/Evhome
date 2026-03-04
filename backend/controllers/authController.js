@@ -1,9 +1,50 @@
 const User = require('../models/User');
 const { generateToken, normalizeVehicleNumber } = require('../utils/helpers');
 
-// In production, integrate Twilio / MSG91 for real OTP
-const OTP_STORE = new Map();
-const TEST_OTP = '123456';
+const POSTCODER_API_KEY = process.env.POSTCODER_API_KEY;
+const POSTCODER_BASE = `https://ws.postcoder.com/pcw/${POSTCODER_API_KEY}/otp`;
+
+const OTP_FROM_NAME = 'GotNexus';
+const OTP_MESSAGE = 'Your GotNexus verification code is [otp]. It will expire in [expiry] minutes. Do not share this code.';
+const OTP_LENGTH = 6;
+const OTP_EXPIRY = 5;
+
+async function postcderSendOtp(mobileNumber) {
+  const res = await fetch(`${POSTCODER_BASE}/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: mobileNumber,
+      from: OTP_FROM_NAME,
+      message: OTP_MESSAGE,
+      otplength: OTP_LENGTH,
+      expiry: OTP_EXPIRY,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Postcoder send failed: ${text}`);
+  }
+  return res.json();
+}
+
+async function postcderVerifyOtp(id, otp) {
+  const res = await fetch(`${POSTCODER_BASE}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: encodeURIComponent(id),
+      otp: encodeURIComponent(otp),
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Postcoder verify failed: ${text}`);
+  }
+  return res.json();
+}
 
 // @desc    Send OTP to mobile number (signup or login)
 // @route   POST /api/auth/send-otp
@@ -28,14 +69,24 @@ exports.sendOtp = async (req, res, next) => {
       }
     }
 
-    const otp = TEST_OTP;
-    OTP_STORE.set(mobileNumber, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    if (mode === 'signup') {
+      const existingUser = await User.findOne({ vehicleNumber: normalized });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Already registered with this vehicle number. Please login instead.',
+        });
+      }
+    }
 
-    console.log(`[Auth] OTP requested for ${mobileNumber} (${vehicleNumber}) [${mode}]`);
+    const postcderRes = await postcderSendOtp(mobileNumber);
+
+    console.log(`[Auth] OTP sent via Postcoder for ${mobileNumber} (${vehicleNumber}) [${mode}]`);
+
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      testOtp: process.env.NODE_ENV !== 'production' ? TEST_OTP : undefined,
+      otpId: postcderRes.id,
     });
   } catch (error) {
     next(error);
@@ -46,21 +97,18 @@ exports.sendOtp = async (req, res, next) => {
 // @route   POST /api/auth/verify-otp
 exports.verifyOtp = async (req, res, next) => {
   try {
-    const { vehicleNumber, mobileNumber, otp, intent } = req.body;
+    const { vehicleNumber, mobileNumber, otp, otpId, intent } = req.body;
     const mode = intent === 'login' ? 'login' : 'signup';
 
-    if (!vehicleNumber || !mobileNumber || !otp) {
+    if (!vehicleNumber || !mobileNumber || !otp || !otpId) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    const stored = OTP_STORE.get(mobileNumber);
-    const isValid = otp === TEST_OTP || (stored && stored.otp === otp && stored.expiresAt > Date.now());
+    const verifyRes = await postcderVerifyOtp(otpId, otp);
 
-    if (!isValid) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    if (!verifyRes.valid) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
-
-    OTP_STORE.delete(mobileNumber);
 
     const normalized = normalizeVehicleNumber(vehicleNumber);
     let user = await User.findOne({ vehicleNumber: normalized });
@@ -75,7 +123,6 @@ exports.verifyOtp = async (req, res, next) => {
       user.lastActiveAt = new Date();
       await user.save();
     } else {
-      // signup
       if (user) {
         return res.status(400).json({
           success: false,
