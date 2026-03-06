@@ -3,31 +3,23 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { authService } from '../services/authService';
 
+const MSG91_WIDGET_ID = import.meta.env.VITE_MSG91_WIDGET_ID || '3663626a3276323630323933';
+const MSG91_AUTH_KEY = import.meta.env.VITE_MSG91_AUTH_KEY || '';
+
 const Auth = () => {
     const [activeTab, setActiveTab] = useState('signup');
-    const [intent, setIntent] = useState('signup'); // signup | login (fixed when OTP is sent)
     const [step, setStep] = useState(1); // 1: details, 2: otp
     const [vehicleNumber, setVehicleNumber] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
-    const [otp, setOtp] = useState('');
-    const [otpId, setOtpId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [resendTimer, setResendTimer] = useState(0);
 
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || '/dashboard';
 
-    const timerRef = useRef(null);
-
-    useEffect(() => {
-        if (resendTimer > 0) {
-            timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-        }
-        return () => clearTimeout(timerRef.current);
-    }, [resendTimer]);
+    const msg91ScriptLoaded = useRef(false);
 
     const handleVehicleChange = (e) => {
         let val = e.target.value.toUpperCase();
@@ -41,6 +33,47 @@ const Auth = () => {
         return null;
     };
 
+    const loadMsg91Script = () => {
+        return new Promise((resolve) => {
+            if (msg91ScriptLoaded.current && typeof window.initSendOTP === 'function') {
+                resolve();
+                return;
+            }
+            const urls = [
+                'https://verify.msg91.com/otp-provider.js',
+                'https://verify.phone91.com/otp-provider.js'
+            ];
+            let i = 0;
+            const attempt = () => {
+                const s = document.createElement('script');
+                s.src = urls[i];
+                s.async = true;
+                s.onload = () => {
+                    msg91ScriptLoaded.current = true;
+                    resolve();
+                };
+                s.onerror = () => {
+                    i++;
+                    if (i < urls.length) attempt();
+                    else resolve();
+                };
+                document.head.appendChild(s);
+            };
+            attempt();
+        });
+    };
+
+    const msg91ConfigRef = useRef(null);
+
+    useEffect(() => {
+        if (step !== 2 || !MSG91_AUTH_KEY || !msg91ConfigRef.current) return;
+        loadMsg91Script().then(() => {
+            if (typeof window.initSendOTP === 'function') {
+                window.initSendOTP(msg91ConfigRef.current);
+            }
+        });
+    }, [step]);
+
     const handleSendOtp = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
         const err = validateDetails();
@@ -49,44 +82,52 @@ const Auth = () => {
             return;
         }
 
-        setLoading(true);
-        setError('');
-        try {
-            const res = await authService.sendOtp(vehicleNumber, mobileNumber, activeTab);
-            if (res.success) {
-                setIntent(activeTab);
-                setOtpId(res.otpId);
-                setStep(2);
-                setResendTimer(30);
-            } else {
-                setError(res.message);
-            }
-        } catch (err) {
-            setError(err.message || "Failed to send OTP. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async (e) => {
-        e.preventDefault();
-        if (otp.length !== 6) {
-            setError("OTP must be 6 digits");
+        if (!MSG91_AUTH_KEY) {
+            setError('OTP service is not configured. Please set VITE_MSG91_AUTH_KEY.');
             return;
         }
 
         setLoading(true);
         setError('');
         try {
-            const res = await authService.verifyOtp(vehicleNumber, mobileNumber, otp, otpId, intent);
-            if (res.success) {
-                login(res.user, res.token);
-                navigate(from, { replace: true });
-            } else {
-                setError(res.message);
-            }
+            await authService.validateForMsg91(vehicleNumber, mobileNumber, activeTab);
+            setStep(2);
+            const identifier = `91${mobileNumber}`;
+            const intentVal = activeTab;
+            msg91ConfigRef.current = {
+                widgetId: MSG91_WIDGET_ID,
+                tokenAuth: MSG91_AUTH_KEY,
+                identifier,
+                exposeMethods: true,
+                success: async (data) => {
+                    const token = data?.token || data?.accessToken || data;
+                    if (token) {
+                        setLoading(true);
+                        setError('');
+                        try {
+                            const res = await authService.verifyMsg91Token(
+                                vehicleNumber, mobileNumber, token, intentVal
+                            );
+                            if (res.success) {
+                                login(res.user, res.token);
+                                navigate(from, { replace: true });
+                            } else {
+                                setError(res.message || 'Verification failed');
+                            }
+                        } catch (err) {
+                            setError(err.message || 'Verification failed');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                },
+                failure: (err) => {
+                    setError(err?.message || err?.toString?.() || 'OTP verification failed');
+                    setLoading(false);
+                },
+            };
         } catch (err) {
-            setError(err.message || "Verification failed.");
+            setError(err.message || "Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -119,7 +160,7 @@ const Auth = () => {
                                         <button
                                             type="button"
                                             className={`btn w-50 ${activeTab === 'signup' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => { setActiveTab('signup'); setError(''); if (step === 2) { setStep(1); setOtp(''); setOtpId(''); } }}
+                                            onClick={() => { setActiveTab('signup'); setError(''); if (step === 2) setStep(1); }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Signup
@@ -127,7 +168,7 @@ const Auth = () => {
                                         <button
                                             type="button"
                                             className={`btn w-50 ${activeTab === 'login' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => { setActiveTab('login'); setError(''); if (step === 2) { setStep(1); setOtp(''); setOtpId(''); } }}
+                                            onClick={() => { setActiveTab('login'); setError(''); if (step === 2) setStep(1); }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Login
@@ -168,51 +209,32 @@ const Auth = () => {
                                     </form>
                                 </>
                             ) : (
-                                <form onSubmit={handleVerifyOtp}>
+                                <>
                                     <div className="mb-4">
-                                        <label className="form-label small fw-bold">Enter 6-digit OTP</label>
-                                        <input
-                                            type="text"
-                                            className="form-control text-center fw-bold"
-                                            placeholder="000000"
-                                            maxLength="6"
-                                            value={otp}
-                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                                            style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)', fontSize: '1.2rem', letterSpacing: '8px' }}
-                                        />
+                                        <p className="text-muted small mb-2">
+                                            Enter the OTP sent to {mobileNumber} in the widget below.
+                                        </p>
+                                        <div id="msg91-otp-widget" data-testid="msg91-otp-container" />
                                         <div className="mt-3 text-center">
-                                            {resendTimer > 0 ? (
-                                                <span className="text-muted small">
-                                                    Resend OTP in {resendTimer}s
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-link p-0 small text-primary"
-                                                    disabled={loading}
-                                                    onClick={handleSendOtp}
-                                                >
-                                                    Resend OTP
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                className="btn btn-link p-0 small text-primary"
+                                                disabled={loading}
+                                                onClick={() => msg91ConfigRef.current && typeof window.initSendOTP === 'function' && window.initSendOTP(msg91ConfigRef.current)}
+                                            >
+                                                Resend OTP
+                                            </button>
                                         </div>
                                     </div>
                                     <button
-                                        type="submit"
-                                        className="btn-primary-custom w-100 mb-3"
-                                        disabled={loading}
-                                    >
-                                        {loading ? 'Verifying...' : intent === 'login' ? 'Verify & Login' : 'Verify & Create Account'}
-                                    </button>
-                                    <button
                                         type="button"
                                         className="btn w-100 text-primary small"
-                                        onClick={() => setStep(1)}
+                                        onClick={() => { setStep(1); setError(''); msg91ConfigRef.current = null; }}
                                         style={{ background: 'none', border: 'none', fontSize: '0.9rem' }}
                                     >
                                         Change Details
                                     </button>
-                                </form>
+                                </>
                             )}
                         </div>
                     </div>

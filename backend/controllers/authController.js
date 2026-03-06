@@ -1,54 +1,11 @@
 const User = require('../models/User');
 const { generateToken, normalizeVehicleNumber } = require('../utils/helpers');
 
-const POSTCODER_API_KEY = process.env.POSTCODER_API_KEY;
-const POSTCODER_BASE = `https://ws.postcoder.com/pcw/${POSTCODER_API_KEY}/otp`;
+const MSG91_AUTHKEY = process.env.MSG91_AUTHKEY;
 
-const OTP_FROM_NAME = 'GotNexus';
-const OTP_MESSAGE = 'Your GotNexus verification code is [otp]. It will expire in [expiry] minutes. Do not share this code.';
-const OTP_LENGTH = 6;
-const OTP_EXPIRY = 5;
-
-async function postcderSendOtp(mobileNumber) {
-  const res = await fetch(`${POSTCODER_BASE}/send`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      to: mobileNumber,
-      from: OTP_FROM_NAME,
-      message: OTP_MESSAGE,
-      otplength: OTP_LENGTH,
-      expiry: OTP_EXPIRY,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Postcoder send failed: ${text}`);
-  }
-  return res.json();
-}
-
-async function postcderVerifyOtp(id, otp) {
-  const res = await fetch(`${POSTCODER_BASE}/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: encodeURIComponent(id),
-      otp: encodeURIComponent(otp),
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Postcoder verify failed: ${text}`);
-  }
-  return res.json();
-}
-
-// @desc    Send OTP to mobile number (signup or login)
-// @route   POST /api/auth/send-otp
-exports.sendOtp = async (req, res, next) => {
+// @desc    Validate vehicle+mobile before MSG91 widget (signup: user must not exist; login: user must exist)
+// @route   POST /api/auth/validate-for-otp
+exports.validateForOtp = async (req, res, next) => {
   try {
     const { vehicleNumber, mobileNumber, intent } = req.body;
     const mode = intent === 'login' ? 'login' : 'signup';
@@ -79,34 +36,45 @@ exports.sendOtp = async (req, res, next) => {
       }
     }
 
-    const postcderRes = await postcderSendOtp(mobileNumber);
-
-    console.log(`[Auth] OTP sent via Postcoder for ${mobileNumber} (${vehicleNumber}) [${mode}]`);
-
-    res.json({
-      success: true,
-      message: 'OTP sent successfully',
-      otpId: postcderRes.id,
-    });
+    res.json({ success: true, message: 'Validation passed' });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Verify OTP and login or register user (signup vs login enforced)
-// @route   POST /api/auth/verify-otp
-exports.verifyOtp = async (req, res, next) => {
+// @desc    Verify MSG91 widget JWT and login or register user
+// @route   POST /api/auth/verify-msg91-token
+exports.verifyMsg91Token = async (req, res, next) => {
   try {
-    const { vehicleNumber, mobileNumber, otp, otpId, intent } = req.body;
+    const { vehicleNumber, mobileNumber, accessToken, intent } = req.body;
     const mode = intent === 'login' ? 'login' : 'signup';
 
-    if (!vehicleNumber || !mobileNumber || !otp || !otpId) {
+    if (!MSG91_AUTHKEY) {
+      return res.status(500).json({ success: false, message: 'MSG91 not configured' });
+    }
+
+    if (!vehicleNumber || !mobileNumber || !accessToken) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    const verifyRes = await postcderVerifyOtp(otpId, otp);
+    const verifyRes = await fetch('https://control.msg91.com/api/v5/widget/verifyAccessToken', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        authkey: MSG91_AUTHKEY,
+        'access-token': accessToken,
+      }),
+    });
 
-    if (!verifyRes.valid) {
+    let verifyData;
+    try {
+      verifyData = await verifyRes.json();
+    } catch {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    const isValid = verifyRes.ok && (verifyData?.request_id || verifyData?.type === 'success');
+    if (!isValid) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
@@ -135,7 +103,7 @@ exports.verifyOtp = async (req, res, next) => {
       });
     }
 
-    console.log(`[Auth] User ${mode === 'login' ? 'Login' : 'Signup'} Success: ${mobileNumber} (${vehicleNumber})`);
+    console.log(`[Auth] User ${mode === 'login' ? 'Login' : 'Signup'} Success (MSG91): ${mobileNumber} (${vehicleNumber})`);
 
     res.json({
       success: true,
