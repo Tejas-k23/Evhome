@@ -8,11 +8,15 @@ const MSG91_AUTH_KEY = import.meta.env.VITE_MSG91_AUTH_KEY || '';
 
 const Auth = () => {
     const [activeTab, setActiveTab] = useState('signup');
+    const [intent, setIntent] = useState('signup');
     const [step, setStep] = useState(1); // 1: details, 2: otp
     const [vehicleNumber, setVehicleNumber] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
+    const [otp, setOtp] = useState('');
+    const [resendTimer, setResendTimer] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [authFailHelp, setAuthFailHelp] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -20,10 +24,18 @@ const Auth = () => {
     const from = location.state?.from?.pathname || '/dashboard';
 
     const msg91ScriptLoaded = useRef(false);
+    const timerRef = useRef(null);
 
     useEffect(() => {
         if (MSG91_AUTH_KEY) loadMsg91Script();
     }, []);
+
+    useEffect(() => {
+        if (resendTimer > 0) {
+            timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+        }
+        return () => clearTimeout(timerRef.current);
+    }, [resendTimer]);
 
     const handleVehicleChange = (e) => {
         let val = e.target.value.toUpperCase();
@@ -70,13 +82,27 @@ const Auth = () => {
     const msg91ConfigRef = useRef(null);
 
     useEffect(() => {
-        if (step !== 2 || !MSG91_AUTH_KEY || !msg91ConfigRef.current) return;
+        if (step !== 2 || !MSG91_AUTH_KEY || !msg91ConfigRef.current || !mobileNumber) return;
+        const identifier = `91${mobileNumber}`;
+        const cfg = msg91ConfigRef.current;
         loadMsg91Script().then(() => {
-            if (typeof window.initSendOTP === 'function') {
-                window.initSendOTP(msg91ConfigRef.current);
+            if (typeof window.initSendOTP !== 'function') return;
+            window.initSendOTP(cfg);
+            if (typeof window.sendOtp === 'function') {
+                window.sendOtp(
+                    identifier,
+                    () => setLoading(false),
+                    (err) => {
+                        const msg = typeof err === 'string' ? err : (err?.message || err?.reason || err?.toString?.() || JSON.stringify(err));
+                        const isAuthFail = msg && /AuthenticationFailure|auth|token/i.test(msg);
+                        setError(isAuthFail ? 'AuthenticationFailure — Use OTP Widget token from MSG91 Token section.' : (msg || 'Failed to send OTP'));
+                        setAuthFailHelp(isAuthFail);
+                        setLoading(false);
+                    }
+                );
             }
         });
-    }, [step]);
+    }, [step, mobileNumber]);
 
     const handleSendOtp = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
@@ -93,16 +119,21 @@ const Auth = () => {
 
         setLoading(true);
         setError('');
+        setAuthFailHelp(false);
         try {
             await authService.validateForMsg91(vehicleNumber, mobileNumber, activeTab);
+            setIntent(activeTab);
             setStep(2);
+            setOtp('');
+            setResendTimer(30);
             const identifier = `91${mobileNumber}`;
             const intentVal = activeTab;
-                msg91ConfigRef.current = {
-                    widgetId: MSG91_WIDGET_ID,
-                    tokenAuth: MSG91_AUTH_KEY,
-                    identifier,
-                    exposeMethods: false,
+            msg91ConfigRef.current = {
+                widgetId: MSG91_WIDGET_ID,
+                tokenAuth: MSG91_AUTH_KEY,
+                authToken: MSG91_AUTH_KEY,
+                identifier,
+                exposeMethods: true,
                 success: async (data) => {
                     const token = data?.token || data?.accessToken || data;
                     if (token) {
@@ -127,16 +158,86 @@ const Auth = () => {
                 },
                     failure: (err) => {
                         const msg = typeof err === 'string' ? err : (err?.message || err?.reason || err?.toString?.() || JSON.stringify(err));
-                        const displayMsg = (msg && /AuthenticationFailure|auth|token/i.test(msg))
-                            ? `${msg} — Use the OTP Widget token from MSG91 Token section (not the main authkey).`
+                        const isAuthFail = msg && /AuthenticationFailure|auth|token/i.test(msg);
+                        const displayMsg = isAuthFail
+                            ? 'AuthenticationFailure — VITE_MSG91_AUTH_KEY must be the OTP Widget token from MSG91, not the main authkey. See steps below.'
                             : (msg || 'OTP verification failed');
                         setError(displayMsg);
+                        setAuthFailHelp(isAuthFail);
                         setLoading(false);
                     },
             };
         } catch (err) {
             setError(err.message || "Failed to send OTP. Please try again.");
         } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        if (otp.length !== 6) {
+            setError('OTP must be 6 digits');
+            return;
+        }
+        setLoading(true);
+        setError('');
+        if (typeof window.verifyOtp === 'function') {
+            window.verifyOtp(
+                otp,
+                async (data) => {
+                    const token = data?.token || data?.accessToken || data;
+                    if (token) {
+                        try {
+                            const res = await authService.verifyMsg91Token(
+                                vehicleNumber, mobileNumber, token, intent
+                            );
+                            if (res.success) {
+                                login(res.user, res.token);
+                                navigate(from, { replace: true });
+                            } else {
+                                setError(res.message || 'Verification failed');
+                            }
+                        } catch (err) {
+                            setError(err.message || 'Verification failed');
+                        }
+                    }
+                    setLoading(false);
+                },
+                (err) => {
+                    const msg = typeof err === 'string' ? err : (err?.message || err?.reason || err?.toString?.() || '');
+                    setError(msg || 'Invalid or expired OTP');
+                    setLoading(false);
+                }
+            );
+        } else {
+            setError('OTP verification not available');
+            setLoading(false);
+        }
+    };
+
+    const handleResendOtp = () => {
+        if (resendTimer > 0) return;
+        setOtp('');
+        setError('');
+        setLoading(true);
+        const identifier = `91${mobileNumber}`;
+        if (typeof window.sendOtp === 'function') {
+            window.sendOtp(
+                identifier,
+                () => {
+                    setResendTimer(30);
+                    setLoading(false);
+                },
+                (err) => {
+                    const msg = typeof err === 'string' ? err : (err?.message || err?.reason || '');
+                    const isAuthFail = msg && /AuthenticationFailure|auth|token/i.test(msg);
+                    setError(msg || 'Failed to resend OTP');
+                    setAuthFailHelp(isAuthFail);
+                    setLoading(false);
+                }
+            );
+        } else {
             setLoading(false);
         }
     };
@@ -157,9 +258,25 @@ const Auth = () => {
                             </div>
 
                             {error && (
-                                <div className="alert alert-danger" style={{ fontSize: '0.9rem', borderRadius: '8px', padding: '10px 15px', marginBottom: '20px' }}>
-                                    {error}
-                                </div>
+                                <>
+                                    <div className="alert alert-danger" style={{ fontSize: '0.9rem', borderRadius: '8px', padding: '10px 15px', marginBottom: authFailHelp ? '10px' : '20px' }}>
+                                        {error}
+                                    </div>
+                                    {authFailHelp && (
+                                        <div className="alert alert-info small" style={{ borderRadius: '8px', padding: '12px 15px', marginBottom: '20px', textAlign: 'left' }}>
+                                            <strong>How to fix AuthenticationFailure:</strong>
+                                            <ol className="mb-0 mt-2 ps-3" style={{ lineHeight: 1.6 }}>
+                                                <li>Log in to <a href="https://control.msg91.com" target="_blank" rel="noopener noreferrer">MSG91 Dashboard</a></li>
+                                                <li>Go to <strong>Token</strong> (left sidebar) → <strong>Generate New Token</strong></li>
+                                                <li>Copy the token value and set <code>VITE_MSG91_AUTH_KEY</code> in your <code>.env</code></li>
+                                                <li>In <strong>OTP</strong> → your widget → <strong>Select token</strong>, choose this token</li>
+                                                <li>Ensure the token is <strong>Enabled</strong> (vertical dots → Enable)</li>
+                                                <li>Restart your dev server after updating <code>.env</code></li>
+                                            </ol>
+                                            <p className="mb-0 mt-2 small text-muted">Use the Widget Token, not the main authkey.</p>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             {step === 1 ? (
@@ -168,7 +285,7 @@ const Auth = () => {
                                         <button
                                             type="button"
                                             className={`btn w-50 ${activeTab === 'signup' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => { setActiveTab('signup'); setError(''); if (step === 2) setStep(1); }}
+                                            onClick={() => { setActiveTab('signup'); setError(''); setAuthFailHelp(false); if (step === 2) setStep(1); }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Signup
@@ -176,7 +293,7 @@ const Auth = () => {
                                         <button
                                             type="button"
                                             className={`btn w-50 ${activeTab === 'login' ? 'btn-primary-custom' : 'btn-link text-decoration-none text-secondary'}`}
-                                            onClick={() => { setActiveTab('login'); setError(''); if (step === 2) setStep(1); }}
+                                            onClick={() => { setActiveTab('login'); setError(''); setAuthFailHelp(false); if (step === 2) setStep(1); }}
                                             style={{ fontSize: '0.9rem', minHeight: '40px', padding: '8px' }}
                                         >
                                             Login
@@ -217,32 +334,49 @@ const Auth = () => {
                                     </form>
                                 </>
                             ) : (
-                                <>
+                                <form onSubmit={handleVerifyOtp}>
                                     <div className="mb-4">
-                                        <p className="text-muted small mb-2">
-                                            Enter the OTP sent to {mobileNumber} in the widget below.
-                                        </p>
-                                        <div id="msg91-otp-widget" data-testid="msg91-otp-container" />
+                                        <label className="form-label small fw-bold">Enter 6-digit OTP</label>
+                                        <input
+                                            type="text"
+                                            className="form-control text-center fw-bold"
+                                            placeholder="000000"
+                                            maxLength="6"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                                            style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)', fontSize: '1.2rem', letterSpacing: '8px' }}
+                                        />
                                         <div className="mt-3 text-center">
-                                            <button
-                                                type="button"
-                                                className="btn btn-link p-0 small text-primary"
-                                                disabled={loading}
-                                                onClick={() => msg91ConfigRef.current && typeof window.initSendOTP === 'function' && window.initSendOTP(msg91ConfigRef.current)}
-                                            >
-                                                Resend OTP
-                                            </button>
+                                            {resendTimer > 0 ? (
+                                                <span className="text-muted small">Resend OTP in {resendTimer}s</span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-link p-0 small text-primary"
+                                                    disabled={loading}
+                                                    onClick={handleResendOtp}
+                                                >
+                                                    Resend OTP
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     <button
+                                        type="submit"
+                                        className="btn-primary-custom w-100 mb-3"
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Verifying...' : intent === 'login' ? 'Verify & Login' : 'Verify & Create Account'}
+                                    </button>
+                                    <button
                                         type="button"
                                         className="btn w-100 text-primary small"
-                                        onClick={() => { setStep(1); setError(''); msg91ConfigRef.current = null; }}
+                                        onClick={() => { setStep(1); setError(''); setAuthFailHelp(false); setOtp(''); msg91ConfigRef.current = null; }}
                                         style={{ background: 'none', border: 'none', fontSize: '0.9rem' }}
                                     >
                                         Change Details
                                     </button>
-                                </>
+                                </form>
                             )}
                         </div>
                     </div>
