@@ -176,8 +176,8 @@ const Auth = () => {
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
-        if (otp.length !== 6) {
-            setError('OTP must be 6 digits');
+        if (otp.length !== 4) {
+            setError('OTP must be 4 digits');
             return;
         }
         setLoading(true);
@@ -336,12 +336,12 @@ const Auth = () => {
                             ) : (
                                 <form onSubmit={handleVerifyOtp}>
                                     <div className="mb-4">
-                                        <label className="form-label small fw-bold">Enter 6-digit OTP</label>
+                                        <label className="form-label small fw-bold">Enter 4-digit OTP</label>
                                         <input
                                             type="text"
                                             className="form-control text-center fw-bold"
-                                            placeholder="000000"
-                                            maxLength="6"
+                                            placeholder="0000"
+                                            maxLength="4"
                                             value={otp}
                                             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                             style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--gray-200)', fontSize: '1.2rem', letterSpacing: '8px' }}
