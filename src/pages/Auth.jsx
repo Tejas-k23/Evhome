@@ -21,6 +21,10 @@ const Auth = () => {
 
     const msg91ScriptLoaded = useRef(false);
 
+    useEffect(() => {
+        if (MSG91_AUTH_KEY) loadMsg91Script();
+    }, []);
+
     const handleVehicleChange = (e) => {
         let val = e.target.value.toUpperCase();
         // basic sanitization: MH 12 TK 0210
@@ -94,11 +98,11 @@ const Auth = () => {
             setStep(2);
             const identifier = `91${mobileNumber}`;
             const intentVal = activeTab;
-            msg91ConfigRef.current = {
-                widgetId: MSG91_WIDGET_ID,
-                tokenAuth: MSG91_AUTH_KEY,
-                identifier,
-                exposeMethods: true,
+                msg91ConfigRef.current = {
+                    widgetId: MSG91_WIDGET_ID,
+                    tokenAuth: MSG91_AUTH_KEY,
+                    identifier,
+                    exposeMethods: false,
                 success: async (data) => {
                     const token = data?.token || data?.accessToken || data;
                     if (token) {
@@ -121,10 +125,14 @@ const Auth = () => {
                         }
                     }
                 },
-                failure: (err) => {
-                    setError(err?.message || err?.toString?.() || 'OTP verification failed');
-                    setLoading(false);
-                },
+                    failure: (err) => {
+                        const msg = typeof err === 'string' ? err : (err?.message || err?.reason || err?.toString?.() || JSON.stringify(err));
+                        const displayMsg = (msg && /AuthenticationFailure|auth|token/i.test(msg))
+                            ? `${msg} — Use the OTP Widget token from MSG91 Token section (not the main authkey).`
+                            : (msg || 'OTP verification failed');
+                        setError(displayMsg);
+                        setLoading(false);
+                    },
             };
         } catch (err) {
             setError(err.message || "Failed to send OTP. Please try again.");
