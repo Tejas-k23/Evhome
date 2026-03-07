@@ -25,6 +25,7 @@ const Auth = () => {
 
     const msg91ScriptLoaded = useRef(false);
     const timerRef = useRef(null);
+    const reqIdRef = useRef(null);
 
     useEffect(() => {
         if (MSG91_AUTH_KEY) loadMsg91Script();
@@ -91,7 +92,10 @@ const Auth = () => {
             if (typeof window.sendOtp === 'function') {
                 window.sendOtp(
                     identifier,
-                    () => setLoading(false),
+                    (data) => {
+                        reqIdRef.current = data?.reqId || data?.request_id || data?.message;
+                        setLoading(false);
+                    },
                     (err) => {
                         const msg = typeof err === 'string' ? err : (err?.message || err?.reason || err?.toString?.() || JSON.stringify(err));
                         const isAuthFail = msg && /AuthenticationFailure|auth|token/i.test(msg);
@@ -186,7 +190,7 @@ const Auth = () => {
             window.verifyOtp(
                 otp,
                 async (data) => {
-                    const token = data?.token || data?.accessToken || data;
+                    const token = data?.token || data?.accessToken || data?.message || (typeof data === 'string' ? data : null);
                     if (token) {
                         try {
                             const res = await authService.verifyMsg91Token(
@@ -208,7 +212,8 @@ const Auth = () => {
                     const msg = typeof err === 'string' ? err : (err?.message || err?.reason || err?.toString?.() || '');
                     setError(msg || 'Invalid or expired OTP');
                     setLoading(false);
-                }
+                },
+                reqIdRef.current
             );
         } else {
             setError('OTP verification not available');
@@ -225,7 +230,8 @@ const Auth = () => {
         if (typeof window.sendOtp === 'function') {
             window.sendOtp(
                 identifier,
-                () => {
+                (data) => {
+                    reqIdRef.current = data?.reqId || data?.request_id || data?.message;
                     setResendTimer(30);
                     setLoading(false);
                 },
