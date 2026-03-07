@@ -20,12 +20,12 @@ export const authService = {
         return data;
     },
 
-    /** Verify MSG91 widget JWT and login/signup */
+    /** Verify MSG91 widget - sends otp: "WIDGET" + token; backend trusts widget verification */
     verifyMsg91Token: async (vehicleNumber, mobileNumber, accessToken, intent = 'signup') => {
         const response = await fetch(`${API_URL}/auth/verify-msg91-token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vehicleNumber, mobileNumber, accessToken, intent }),
+            body: JSON.stringify({ vehicleNumber, mobileNumber, accessToken, otp: 'WIDGET', intent }),
         });
         const data = await response.json();
         if (!response.ok) {

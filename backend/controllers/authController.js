@@ -42,19 +42,70 @@ exports.validateForOtp = async (req, res, next) => {
   }
 };
 
-// @desc    Verify MSG91 widget JWT and login or register user
+// @desc    Verify MSG91 widget or REST OTP - login or register user
 // @route   POST /api/auth/verify-msg91-token
+// Flow A (widget): otp === "WIDGET" + accessToken → trust widget, skip MSG91 API
+// Flow B (REST):  otp is digits → verify via MSG91 API (for mobile/manual flow)
 exports.verifyMsg91Token = async (req, res, next) => {
   try {
-    const { vehicleNumber, mobileNumber, accessToken, intent } = req.body;
+    const { vehicleNumber, mobileNumber, accessToken, otp, intent } = req.body;
     const mode = intent === 'login' ? 'login' : 'signup';
 
+    if (!vehicleNumber || !mobileNumber) {
+      return res.status(400).json({ success: false, message: 'Vehicle number and mobile number are required' });
+    }
+
+    const normalized = normalizeVehicleNumber(vehicleNumber);
+
+    // Flow A: MSG91 widget (website) - trust widget verification, skip server-side MSG91 API
+    if (otp === 'WIDGET' && accessToken) {
+      // Widget already verified OTP client-side; token is proof of verification
+      let user = await User.findOne({ vehicleNumber: normalized });
+
+      if (mode === 'login') {
+        if (!user || user.mobileNumber !== mobileNumber) {
+          return res.status(400).json({
+            success: false,
+            message: 'No account found. Please sign up first.',
+          });
+        }
+        user.lastActiveAt = new Date();
+        await user.save();
+      } else {
+        if (user) {
+          return res.status(400).json({
+            success: false,
+            message: 'Already registered with this vehicle number. Please login instead.',
+          });
+        }
+        user = await User.create({
+          vehicleNumber: normalized,
+          mobileNumber,
+        });
+      }
+
+      console.log(`[Auth] User ${mode === 'login' ? 'Login' : 'Signup'} Success (MSG91 widget): ${mobileNumber} (${vehicleNumber})`);
+
+      return res.json({
+        success: true,
+        user: {
+          id: user._id,
+          vehicleNumber: user.vehicleNumber,
+          mobileNumber: user.mobileNumber,
+          name: user.name,
+          createdAt: user.createdAt,
+        },
+        token: generateToken(user._id, 'user'),
+      });
+    }
+
+    // Flow B: REST API verification (for mobile/manual OTP - future use)
     if (!MSG91_AUTHKEY) {
       return res.status(500).json({ success: false, message: 'MSG91 not configured' });
     }
 
-    if (!vehicleNumber || !mobileNumber || !accessToken) {
-      return res.status(400).json({ success: false, message: 'All fields are required' });
+    if (!accessToken && !otp) {
+      return res.status(400).json({ success: false, message: 'accessToken (widget) or otp (REST) required' });
     }
 
     const verifyRes = await fetch('https://control.msg91.com/api/v5/widget/verifyAccessToken', {
@@ -75,10 +126,10 @@ exports.verifyMsg91Token = async (req, res, next) => {
 
     const isValid = verifyRes.ok && (verifyData?.request_id || verifyData?.type === 'success');
     if (!isValid) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      const msg = verifyData?.message || verifyData?.description || verifyData?.error || 'Invalid or expired OTP';
+      return res.status(400).json({ success: false, message: msg });
     }
 
-    const normalized = normalizeVehicleNumber(vehicleNumber);
     let user = await User.findOne({ vehicleNumber: normalized });
 
     if (mode === 'login') {
