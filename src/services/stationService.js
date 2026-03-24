@@ -19,7 +19,8 @@ export const stationService = {
         if (!response.ok) {
             throw new Error(data.message || 'Failed to fetch stations');
         }
-        return data.stations || data;
+        const stations = data.stations || data;
+        return stations.map(s => ({ ...s, id: s._id || s.id }));
     },
 
     getById: async (id) => {
@@ -28,7 +29,8 @@ export const stationService = {
         if (!response.ok) {
             throw new Error(data.message || 'Station not found');
         }
-        return data.station;
+        const station = data.station;
+        return { ...station, id: station._id || station.id };
     },
 
     search: async (query) => {
@@ -37,6 +39,7 @@ export const stationService = {
         if (!response.ok) {
             throw new Error(data.message || 'Search failed');
         }
-        return data.stations || data;
+        const stations = data.stations || data;
+        return stations.map(s => ({ ...s, id: s._id || s.id }));
     },
 };

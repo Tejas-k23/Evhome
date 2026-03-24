@@ -90,7 +90,7 @@ const BookSlot = () => {
                 setError(res.message);
             }
         } catch (err) {
-            setError("Failed to create booking.");
+            setError(err.message || "Failed to create booking.");
         } finally {
             setLoading(false);
         }
