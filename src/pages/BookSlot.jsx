@@ -15,7 +15,11 @@ const BookSlot = () => {
 
     const [stations, setStations] = useState([]);
     const [filteredStations, setFilteredStations] = useState([]);
-    const [selectedStation, setSelectedStation] = useState(location.state?.station || null);
+    const [selectedStation, setSelectedStation] = useState(() => {
+        const s = location.state?.station;
+        if (s) return { ...s, id: s._id || s.id };
+        return null;
+    });
     const [searchQuery, setSearchQuery] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
@@ -30,11 +34,21 @@ const BookSlot = () => {
 
     useEffect(() => {
         const fetchStations = async () => {
-            const data = await stationService.getAll();
-            const list = Array.isArray(data) ? data : (data?.stations || []);
-            const activeStations = list.filter(s => s.status === 'ACTIVE');
-            setStations(activeStations);
-            setFilteredStations(activeStations);
+            try {
+                console.log("Fetching stations...");
+                const data = await stationService.getAll();
+                console.log("Stations fetched:", data);
+                const list = Array.isArray(data) ? data : (data?.stations || []);
+                const activeStations = list.filter(s => s.status === 'ACTIVE');
+                setStations(activeStations);
+                setFilteredStations(activeStations);
+                if (activeStations.length === 0) {
+                    console.warn("No active stations found.");
+                }
+            } catch (err) {
+                console.error("Failed to fetch stations:", err);
+                setError("Could not load charging stations. Please check your internet or try again later.");
+            }
         };
         fetchStations();
     }, []);
@@ -55,6 +69,10 @@ const BookSlot = () => {
             });
         }
     }, [searchQuery, stations]);
+
+    useEffect(() => {
+        console.log("BookSlot: Selected station changed:", selectedStation);
+    }, [selectedStation]);
 
     const handleBooking = async (e) => {
         e.preventDefault();

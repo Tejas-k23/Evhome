@@ -19,7 +19,8 @@ export const stationService = {
         if (!response.ok) {
             throw new Error(data.message || 'Failed to fetch stations');
         }
-        const stations = data.stations || data;
+        const stations = data.stations || (Array.isArray(data) ? data : []);
+        if (!Array.isArray(stations)) return [];
         return stations.map(s => ({ ...s, id: s._id || s.id }));
     },
 
