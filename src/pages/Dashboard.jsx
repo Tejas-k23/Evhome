@@ -21,8 +21,11 @@ const Dashboard = () => {
 
     const fetchData = async () => {
         try {
-            const bookings = await bookingService.getUserBookings(currentUser.id);
-            const bills = await bookingService.getUserBills(currentUser.id);
+            const bookingsRes = await bookingService.getUserBookings();
+            const billsRes = await bookingService.getUserBills();
+
+            const bookings = bookingsRes.bookings || [];
+            const bills = billsRes.bills || [];
 
             const active = bookings.find(b => b.status === 'ACTIVE');
             const upcoming = bookings.find(b => b.status === 'BOOKED');
@@ -83,7 +86,8 @@ const Dashboard = () => {
     };
 
     const handleStop = async (booking) => {
-        const res = await bookingService.stopCharging(booking.id, liveData.energyKwh, liveData.cost);
+        const bookingId = booking._id || booking.id;
+        const res = await bookingService.stopCharging(bookingId, liveData.energyKwh, liveData.cost);
         if (res.success) {
             fetchData();
         }
@@ -165,7 +169,7 @@ const Dashboard = () => {
                                         </p>
                                     </div>
                                     <button
-                                        onClick={() => handleStart(upcomingBooking.id)}
+                                        onClick={() => handleStart(upcomingBooking._id || upcomingBooking.id)}
                                         className="btn-primary-custom"
                                         style={{ borderRadius: 'var(--radius-md)' }}
                                     >
@@ -204,7 +208,7 @@ const Dashboard = () => {
                                     </thead>
                                     <tbody>
                                         {recentBookings.length > 0 ? recentBookings.map(b => (
-                                            <tr key={b.id}>
+                                            <tr key={b._id || b.id}>
                                                 <td className="small">{new Date(b.startTime).toLocaleDateString()}</td>
                                                 <td className="small">{new Date(b.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                                                 <td className="small">{b.durationMinutes} mins</td>
@@ -233,7 +237,7 @@ const Dashboard = () => {
                                 <Link to="/bills" className="text-primary small fw-bold text-decoration-none">View All</Link>
                             </div>
                             {recentBills.length > 0 ? recentBills.map(bill => (
-                                <div key={bill.id} className="p-3 mb-3 border rounded-3 d-flex justify-content-between align-items-center">
+                                <div key={bill._id || bill.id} className="p-3 mb-3 border rounded-3 d-flex justify-content-between align-items-center">
                                     <div>
                                         <div className="small fw-bold">₹{bill.amount}</div>
                                         <div className="extra-small text-muted">{new Date(bill.createdAt).toLocaleDateString()} • {bill.unitsKwh} kWh</div>

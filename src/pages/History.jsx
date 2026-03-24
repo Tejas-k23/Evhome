@@ -9,9 +9,14 @@ export const Bookings = () => {
 
     useEffect(() => {
         const fetchBookings = async () => {
-            const data = await bookingService.getUserBookings(currentUser.id);
-            setBookings(data);
-            setLoading(false);
+            try {
+                const res = await bookingService.getUserBookings();
+                setBookings(res.bookings || []);
+            } catch (err) {
+                console.error("Failed to fetch bookings:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchBookings();
     }, [currentUser]);
@@ -37,8 +42,8 @@ export const Bookings = () => {
                                 </thead>
                                 <tbody>
                                     {bookings.length > 0 ? bookings.map(b => (
-                                        <tr key={b.id}>
-                                            <td className="small text-muted">#{b.id.slice(-6)}</td>
+                                        <tr key={b._id || b.id}>
+                                            <td className="small text-muted">#{(b._id || b.id).slice(-6)}</td>
                                             <td>{new Date(b.startTime).toLocaleDateString()}</td>
                                             <td>
                                                 {new Date(b.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
@@ -73,9 +78,14 @@ export const Bills = () => {
 
     useEffect(() => {
         const fetchBills = async () => {
-            const data = await bookingService.getUserBills(currentUser.id);
-            setBills(data);
-            setLoading(false);
+            try {
+                const res = await bookingService.getUserBills();
+                setBills(res.bills || []);
+            } catch (err) {
+                console.error("Failed to fetch bills:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchBills();
     }, [currentUser]);
@@ -101,8 +111,8 @@ export const Bills = () => {
                                 </thead>
                                 <tbody>
                                     {bills.length > 0 ? bills.map(bill => (
-                                        <tr key={bill.id}>
-                                            <td className="small text-muted">#{bill.id.slice(-6)}</td>
+                                        <tr key={bill._id || bill.id}>
+                                            <td className="small text-muted">#{(bill._id || bill.id).slice(-6)}</td>
                                             <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
                                             <td>{bill.unitsKwh} kWh</td>
                                             <td className="fw-bold text-primary">₹{bill.amount}</td>
