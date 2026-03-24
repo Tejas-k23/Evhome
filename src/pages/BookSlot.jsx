@@ -83,11 +83,19 @@ const BookSlot = () => {
         setLoading(true);
         setError('');
         try {
-            const res = await bookingService.createBooking(selectedStation.id, null, startTime, endTime);
+            const stationId = selectedStation._id || selectedStation.id;
+            console.log("Attempting booking for station:", stationId, { startTime, endTime });
+
+            if (!stationId) {
+                setError("Station ID is missing. Please try selecting the station again.");
+                return;
+            }
+
+            const res = await bookingService.createBooking(stationId, null, startTime, endTime);
             if (res.success) {
                 navigate('/dashboard');
             } else {
-                setError(res.message);
+                setError(res.message || "Failed to create booking.");
             }
         } catch (err) {
             setError(err.message || "Failed to create booking.");
@@ -214,6 +222,7 @@ const BookSlot = () => {
                                         <div>
                                             <h5 className="mb-0 fw-bold">{selectedStation.name}</h5>
                                             <div className="small text-muted">{selectedStation.location}</div>
+                                            <div className="small text-muted mt-1">ID: {selectedStation._id || selectedStation.id}</div>
                                         </div>
                                     </div>
                                     <hr />
