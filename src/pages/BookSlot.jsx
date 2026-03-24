@@ -6,7 +6,7 @@ import { MAPBOX_TOKEN, MAPBOX_CONFIG } from '../config/mapboxConfig';
 import { useAuth } from '../context/authContext';
 import { bookingService } from '../services/bookingService';
 import { stationService } from '../services/stationService';
-import { Calendar, Clock, MapPin, Search, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Search, ChevronRight, Power } from 'lucide-react';
 
 const BookSlot = () => {
     const { currentUser } = useAuth();

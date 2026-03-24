@@ -27,7 +27,7 @@ export const iotService = {
         if (currentSession && currentSession.status === 'ACTIVE') {
             current = parseFloat((Math.random() * (16 - 8) + 8).toFixed(2));
             const increment = (current * voltage / 1000) * (3 / 3600);
-            energyKwh = (currentSession.energyKwh || 0) + increment;
+            energyKwh = parseFloat(currentSession.energyKwh || 0) + increment;
             cost = energyKwh * pricePerKwh;
         }
 
