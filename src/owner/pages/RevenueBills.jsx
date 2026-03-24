@@ -28,12 +28,12 @@ const RevenueBills = () => {
         const fetchRevenueData = async () => {
             if (!owner) return;
             try {
-                const [revStats, billList] = await Promise.all([
-                    ownerRevenueService.getRevenueStats(),
-                    ownerRevenueService.getBillsForOwner()
-                ]);
-                setStats(revStats);
-                setBills(billList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+                const data = await ownerRevenueService.getRevenueStats();
+                setStats({
+                    ...data,
+                    billCount: data.count || data.bills?.length || 0
+                });
+                setBills(Array.isArray(data.bills) ? data.bills.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : []);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -42,6 +42,10 @@ const RevenueBills = () => {
         };
         fetchRevenueData();
     }, [owner]);
+
+    const handleViewBill = (bill) => {
+        alert(`Viewing Bill #${bill.id.split('-')[1] || bill.id}\nStation: ${bill.stationId}\nAmount: ₹${bill.amount}\nStatus: ${bill.paymentStatus}`);
+    };
 
     const handleDownloadCSV = () => {
         // Simple simulation of CSV download
@@ -141,7 +145,7 @@ const RevenueBills = () => {
                                         </span>
                                     </td>
                                     <td className="pe-4 text-end">
-                                        <button className="btn btn-sm btn-light"><ArrowUpRight size={14} /></button>
+                                        <button className="btn btn-sm btn-light" onClick={() => handleViewBill(bill)}><ArrowUpRight size={14} /></button>
                                     </td>
                                 </tr>
                             ))}

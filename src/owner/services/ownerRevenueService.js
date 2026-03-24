@@ -26,9 +26,5 @@ const ownerFetch = async (endpoint, options = {}) => {
 export const ownerRevenueService = {
     getRevenueStats: async () => {
         return ownerFetch('/owner/revenue');
-    },
-
-    getBillsForOwner: async () => {
-        return ownerFetch('/owner/revenue');
     }
 };

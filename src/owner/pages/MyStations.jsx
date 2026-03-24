@@ -112,6 +112,16 @@ const MyStations = () => {
         }
     };
 
+    const toggleStatus = async (station) => {
+        const newStatus = station.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        try {
+            await ownerStationService.updateStation(station.id, { status: newStatus });
+            fetchStations();
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
     if (loading) return <div className="p-4">Loading stations...</div>;
 
     return (

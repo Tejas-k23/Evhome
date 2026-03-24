@@ -41,11 +41,7 @@ const BookingsManagement = () => {
     const handleStatusUpdate = async (bookingId, status) => {
         try {
             await ownerBookingService.updateBookingStatus(bookingId, status);
-
-            if (status === 'ACTIVE') {
-                // Starting is handled by the backend via bookings/:id/start
-                await ownerSessionService.startSession(bookingId);
-            }
+            // Redundant call removed - backend /start already handles activation
             fetchBookings();
         } catch (err) {
             alert(err.message);
@@ -114,7 +110,7 @@ const BookingsManagement = () => {
                             ) : filteredBookings.map((b) => (
                                 <tr key={b.id}>
                                     <td className="px-4">
-                                        <div className="fw-bold text-dark">#{b.id.split('-')[1] || b.id}</div>
+                                        <div className="fw-bold text-dark">#{b.id.includes('-') ? b.id.split('-')[1] : b.id.slice(-6)}</div>
                                         <div className="small text-muted">{b.stationName || 'Loading...'}</div>
                                     </td>
                                     <td>
@@ -122,7 +118,7 @@ const BookingsManagement = () => {
                                             <div style={{ width: '32px', height: '32px', background: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <User size={16} className="text-muted" />
                                             </div>
-                                            <span className="fw-500">User_{b.userId.split('-')[1]}</span>
+                                            <span className="fw-500">User_{b.userId.includes('-') ? b.userId.split('-')[1] : b.userId.slice(-6)}</span>
                                         </div>
                                     </td>
                                     <td>
