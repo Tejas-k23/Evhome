@@ -36,6 +36,7 @@ import OwnerProtectedRoute from './owner/components/OwnerProtectedRoute'
 import OwnerLayout from './owner/components/OwnerLayout'
 import OwnerDashboard from './owner/pages/OwnerDashboard'
 import MyStations from './owner/pages/MyStations'
+import StationDetails from './owner/pages/StationDetails'
 import OwnerBookings from './owner/pages/BookingsManagement'
 import SessionsMonitoring from './owner/pages/SessionsMonitoring'
 import RevenueBills from './owner/pages/RevenueBills'
@@ -101,6 +102,7 @@ function App() {
           }>
             <Route path="dashboard" element={<OwnerDashboard />} />
             <Route path="stations" element={<MyStations />} />
+            <Route path="stations/:stationId" element={<StationDetails />} />
             <Route path="bookings" element={<OwnerBookings />} />
             <Route path="sessions" element={<SessionsMonitoring />} />
             <Route path="revenue" element={<RevenueBills />} />
@@ -116,4 +118,3 @@ function App() {
 
 
 export default App
-

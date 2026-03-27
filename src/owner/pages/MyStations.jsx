@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus,
     Edit2,
@@ -14,6 +15,7 @@ import { ownerStationService } from '../services/ownerStationService';
 import { ownerAuthService } from '../services/ownerAuthService';
 
 const MyStations = () => {
+    const navigate = useNavigate();
     const [stations, setStations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,6 +33,7 @@ const MyStations = () => {
     const [socketLoading, setSocketLoading] = useState(false);
 
     const owner = ownerAuthService.getCurrentOwner();
+    const getStationId = (station) => station.id || station._id;
 
     const fetchStations = async () => {
         if (!owner) return;
@@ -76,7 +79,7 @@ const MyStations = () => {
         e.preventDefault();
         try {
             if (editingStation) {
-                await ownerStationService.updateStation(editingStation.id, formData);
+                await ownerStationService.updateStation(getStationId(editingStation), formData);
             } else {
                 await ownerStationService.createStation(formData);
             }
@@ -92,7 +95,7 @@ const MyStations = () => {
         setSocketLoading(true);
         setIsSocketModalOpen(true);
         try {
-            const data = await ownerStationService.getSocketsByStation(station.id);
+            const data = await ownerStationService.getSocketsByStation(getStationId(station));
             setSockets(data);
         } catch (err) {
             alert(err.message);
@@ -115,7 +118,7 @@ const MyStations = () => {
     const toggleStatus = async (station) => {
         const newStatus = station.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
         try {
-            await ownerStationService.updateStation(station.id, { status: newStatus });
+            await ownerStationService.updateStation(getStationId(station), { status: newStatus });
             fetchStations();
         } catch (err) {
             alert(err.message);
@@ -151,7 +154,7 @@ const MyStations = () => {
                         </div>
                     </div>
                 ) : stations.map((station) => (
-                    <div className="col-lg-6 col-xl-4" key={station.id}>
+                    <div className="col-lg-6 col-xl-4" key={getStationId(station)}>
                         <div style={{
                             background: 'white',
                             borderRadius: '24px',
@@ -210,13 +213,22 @@ const MyStations = () => {
                                 <span className="text-muted small fw-500">
                                     <LayoutGrid size={14} className="me-1" /> {station.socketCount} Sockets
                                 </span>
-                                <button
-                                    onClick={() => handleManageSockets(station)}
-                                    className="btn btn-sm btn-outline-secondary"
-                                    style={{ borderRadius: '8px' }}
-                                >
-                                    Manage Sockets
-                                </button>
+                                <div className="d-flex gap-2">
+                                    <button
+                                        onClick={() => navigate(`/owner/stations/${getStationId(station)}`)}
+                                        className="btn btn-sm btn-success"
+                                        style={{ borderRadius: '8px' }}
+                                    >
+                                        <Settings size={14} className="me-1" /> Open Station
+                                    </button>
+                                    <button
+                                        onClick={() => handleManageSockets(station)}
+                                        className="btn btn-sm btn-outline-secondary"
+                                        style={{ borderRadius: '8px' }}
+                                    >
+                                        Sockets
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -135,7 +135,7 @@ const OwnerLayout = () => {
                     zIndex: 900
                 }}>
                     <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1E293B' }}>
-                        {menuItems.find(m => m.path === location.pathname)?.label || 'Owner Portal'}
+                        {menuItems.find(m => location.pathname === m.path || location.pathname.startsWith(`${m.path}/`))?.label || 'Owner Portal'}
                     </h2>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>

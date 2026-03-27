@@ -25,25 +25,29 @@ const ownerFetch = async (endpoint, options = {}) => {
 
 export const ownerStationService = {
     getMyStations: async () => {
-        return ownerFetch('/owner/stations');
+        const data = await ownerFetch('/owner/stations');
+        return data.stations || [];
     },
 
     createStation: async (stationData) => {
-        return ownerFetch('/owner/stations', {
+        const data = await ownerFetch('/owner/stations', {
             method: 'POST',
             body: JSON.stringify(stationData),
         });
+        return data.station || data;
     },
 
     updateStation: async (stationId, stationData) => {
-        return ownerFetch(`/owner/stations/${stationId}`, {
+        const data = await ownerFetch(`/owner/stations/${stationId}`, {
             method: 'PUT',
             body: JSON.stringify(stationData),
         });
+        return data.station || data;
     },
 
     getSocketsByStation: async (stationId) => {
-        return ownerFetch(`/owner/stations/${stationId}/sockets`);
+        const data = await ownerFetch(`/owner/stations/${stationId}/sockets`);
+        return data.sockets || [];
     },
 
     updateSocketStatus: async (socketId, status) => {
@@ -54,19 +58,27 @@ export const ownerStationService = {
     },
 
     getStationWifi: async (stationId) => {
-        return ownerFetch(`/owner/stations/${stationId}/wifi`);
+        const data = await ownerFetch(`/owner/stations/${stationId}/wifi`);
+        return data.wifiNetworks || [];
     },
 
     updateStationWifi: async (stationId, wifiNetworks) => {
-        return ownerFetch(`/owner/stations/${stationId}/wifi`, {
+        const data = await ownerFetch(`/owner/stations/${stationId}/wifi`, {
             method: 'PUT',
             body: JSON.stringify({ wifiNetworks }),
         });
+        return data.wifiNetworks || [];
     },
 
     regenerateApiKey: async (stationId) => {
-        return ownerFetch(`/owner/stations/${stationId}/api-key`, {
+        const data = await ownerFetch(`/owner/stations/${stationId}/api-key`, {
             method: 'POST',
         });
+        return data.iotApiKey;
+    },
+
+    getStationById: async (stationId) => {
+        const stations = await ownerStationService.getMyStations();
+        return stations.find((station) => (station.id || station._id) === stationId) || null;
     }
 };
