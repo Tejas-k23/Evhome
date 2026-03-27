@@ -3,15 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
     Zap,
     Activity,
-    Clock,
     Gauge,
-    Thermometer,
     BatteryCharging,
     ArrowUpRight,
-    Search
+    IndianRupee
 } from 'lucide-react';
 import { ownerSessionService } from '../services/ownerSessionService';
-import { ownerStationService } from '../services/ownerStationService';
 import { ownerAuthService } from '../services/ownerAuthService';
 
 const SessionsMonitoring = () => {
@@ -45,7 +42,9 @@ const SessionsMonitoring = () => {
         return () => clearInterval(updateInterval.current);
     }, [owner]);
 
-    const activeSessions = sessions.filter(s => filter === 'ACTIVE' ? (s.current > 0) : (s.current === 0 || !s.current));
+    const filteredSessions = sessions.filter((session) => (
+        filter === 'ACTIVE' ? (session.current > 0) : (session.current === 0 || !session.current)
+    ));
 
     if (loading) return <div className="p-4">Loading sessions...</div>;
 
@@ -63,15 +62,15 @@ const SessionsMonitoring = () => {
             </div>
 
             <div className="row g-4">
-                {sessions.length === 0 ? (
+                {filteredSessions.length === 0 ? (
                     <div className="col-12">
                         <div className="text-center py-5 bg-white rounded-4 border">
                             <Zap size={48} className="text-muted mb-3" />
-                            <h5>No active sessions</h5>
-                            <p className="text-muted">Currently there are no vehicles charging at your stations.</p>
+                            <h5>No sessions found</h5>
+                            <p className="text-muted">Currently there are no live sessions matching this view.</p>
                         </div>
                     </div>
-                ) : sessions.map((session) => (
+                ) : filteredSessions.map((session) => (
                     <div className="col-md-6 col-lg-4" key={session.id}>
                         <div style={{
                             background: 'white',
@@ -98,10 +97,15 @@ const SessionsMonitoring = () => {
                                 }}>
                                     <BatteryCharging size={24} />
                                 </div>
-                                <span className="small fw-bold text-muted">ID: #{session.id.split('-')[1]}</span>
+                                <span className="small fw-bold text-muted">ID: #{String(session.id).slice(-6)}</span>
                             </div>
 
-                            <h5 className="fw-800 mb-4" style={{ position: 'relative', zIndex: 1 }}>Session Active</h5>
+                            <h5 className="fw-800 mb-2" style={{ position: 'relative', zIndex: 1 }}>
+                                {session.stationName || 'Active Session'}
+                            </h5>
+                            <p className="text-muted small mb-4" style={{ position: 'relative', zIndex: 1 }}>
+                                {session.userVehicleNumber || 'Vehicle details unavailable'}
+                            </p>
 
                             <div className="row g-3 mb-4">
                                 <div className="col-6">

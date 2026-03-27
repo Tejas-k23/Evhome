@@ -25,7 +25,25 @@ const ownerFetch = async (endpoint, options = {}) => {
 
 export const ownerBookingService = {
     getBookingsForOwner: async () => {
-        return ownerFetch('/owner/bookings');
+        const data = await ownerFetch('/owner/bookings');
+        const bookings = Array.isArray(data.bookings) ? data.bookings : [];
+
+        return bookings.map((booking) => ({
+            id: booking._id || booking.id,
+            userId: booking.user?._id || booking.user?.id || '',
+            userVehicleNumber: booking.user?.vehicleNumber || '',
+            userMobileNumber: booking.user?.mobileNumber || '',
+            stationId: booking.station?._id || booking.station?.id || '',
+            stationName: booking.station?.name || '',
+            stationLocation: booking.station?.location || '',
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            durationMinutes: booking.durationMinutes || 0,
+            status: booking.status,
+            energyKwh: booking.energyKwh || 0,
+            cost: booking.cost || 0,
+            createdAt: booking.createdAt,
+        }));
     },
 
     updateBookingStatus: async (bookingId, status) => {

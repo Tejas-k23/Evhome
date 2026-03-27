@@ -25,7 +25,30 @@ const ownerFetch = async (endpoint, options = {}) => {
 
 export const ownerSessionService = {
     getSessionsForOwner: async () => {
-        return ownerFetch('/owner/sessions');
+        const data = await ownerFetch('/owner/sessions');
+        const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+
+        return sessions.map((item) => {
+            const booking = item.booking || {};
+            const session = item.session || {};
+
+            return {
+                id: session._id || session.id || booking._id || booking.id,
+                bookingId: booking._id || booking.id || '',
+                stationName: booking.station?.name || '',
+                userVehicleNumber: booking.user?.vehicleNumber || '',
+                startTime: booking.startTime,
+                endTime: booking.endTime,
+                voltage: session.voltage || 0,
+                current: session.current || 0,
+                power: session.power || 0,
+                energyKwh: session.energyKwh || booking.energyKwh || 0,
+                frequency: session.frequency || 0,
+                powerFactor: session.powerFactor || 0,
+                cost: session.cost || booking.cost || 0,
+                updatedAt: session.updatedAt || booking.updatedAt || booking.createdAt,
+            };
+        });
     },
 
     startSession: async (bookingId) => {
@@ -36,7 +59,8 @@ export const ownerSessionService = {
 
     getSessionByBooking: async (bookingId) => {
         try {
-            return await ownerFetch(`/sessions/${bookingId}`);
+            const data = await ownerFetch(`/sessions/${bookingId}`);
+            return data.session || data;
         } catch {
             return null;
         }
@@ -44,7 +68,8 @@ export const ownerSessionService = {
 
     getLiveSessionData: async (bookingId) => {
         try {
-            return await ownerFetch(`/sessions/${bookingId}/live`);
+            const data = await ownerFetch(`/sessions/${bookingId}/live`);
+            return data.session || data;
         } catch {
             return null;
         }
