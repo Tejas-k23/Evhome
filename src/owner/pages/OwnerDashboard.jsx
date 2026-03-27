@@ -33,7 +33,11 @@ const OwnerDashboard = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!owner) return;
+            if (!owner) {
+                setRecentBookings([]);
+                setLoading(false);
+                return;
+            }
             try {
                 const [myStations, myBookings, revStats] = await Promise.all([
                     ownerStationService.getMyStations(),
@@ -59,6 +63,8 @@ const OwnerDashboard = () => {
     }, [owner]);
 
     if (loading) return <div>Loading dashboard...</div>;
+
+    if (!owner) return <div className="p-4 text-muted">Owner account not found. Please log in again.</div>;
 
     const cards = [
         { title: 'My Stations', value: stats.stations, icon: <MapPin />, color: '#3B82F6', bg: '#EFF6FF' },

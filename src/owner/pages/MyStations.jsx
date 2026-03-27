@@ -36,7 +36,11 @@ const MyStations = () => {
     const getStationId = (station) => station.id || station._id;
 
     const fetchStations = async () => {
-        if (!owner) return;
+        if (!owner) {
+            setStations([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const data = await ownerStationService.getMyStations();
@@ -126,6 +130,8 @@ const MyStations = () => {
     };
 
     if (loading) return <div className="p-4">Loading stations...</div>;
+
+    if (!owner) return <div className="p-4 text-muted">Owner account not found. Please log in again.</div>;
 
     return (
         <div className="my-stations">

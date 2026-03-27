@@ -26,7 +26,11 @@ const BookingsManagement = () => {
     };
 
     const fetchBookings = async () => {
-        if (!owner) return;
+        if (!owner) {
+            setBookings([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const data = await ownerBookingService.getBookingsForOwner();
@@ -66,6 +70,10 @@ const BookingsManagement = () => {
         : bookings.filter(b => b.status === filterStatus);
 
     if (loading) return <div className="p-4">Loading bookings...</div>;
+
+    if (!owner) {
+        return <div className="p-4 text-muted">Owner account not found. Please log in again.</div>;
+    }
 
     return (
         <div className="bookings-management">

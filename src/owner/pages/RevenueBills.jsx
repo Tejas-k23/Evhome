@@ -26,7 +26,11 @@ const RevenueBills = () => {
 
     useEffect(() => {
         const fetchRevenueData = async () => {
-            if (!owner) return;
+            if (!owner) {
+                setBills([]);
+                setLoading(false);
+                return;
+            }
             try {
                 const data = await ownerRevenueService.getRevenueStats();
                 setStats({
@@ -53,6 +57,8 @@ const RevenueBills = () => {
     };
 
     if (loading) return <div className="p-4">Loading revenue data...</div>;
+
+    if (!owner) return <div className="p-4 text-muted">Owner account not found. Please log in again.</div>;
 
     return (
         <div className="revenue-bills">

@@ -20,7 +20,11 @@ const SessionsMonitoring = () => {
     const updateInterval = useRef(null);
 
     const fetchSessions = async () => {
-        if (!owner) return;
+        if (!owner) {
+            setSessions([]);
+            setLoading(false);
+            return;
+        }
         try {
             const data = await ownerSessionService.getSessionsForOwner();
             setSessions(data);
@@ -35,9 +39,11 @@ const SessionsMonitoring = () => {
         fetchSessions();
 
         // Poll for live session updates from the API
-        updateInterval.current = setInterval(() => {
-            fetchSessions();
-        }, 3000);
+        if (owner) {
+            updateInterval.current = setInterval(() => {
+                fetchSessions();
+            }, 3000);
+        }
 
         return () => clearInterval(updateInterval.current);
     }, [owner]);
@@ -47,6 +53,8 @@ const SessionsMonitoring = () => {
     ));
 
     if (loading) return <div className="p-4">Loading sessions...</div>;
+
+    if (!owner) return <div className="p-4 text-muted">Owner account not found. Please log in again.</div>;
 
     return (
         <div className="sessions-monitoring">
