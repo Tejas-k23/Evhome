@@ -26,6 +26,10 @@ const OwnerDashboard = () => {
     const [loading, setLoading] = useState(true);
     const owner = ownerAuthService.getCurrentOwner();
     const navigate = useNavigate();
+    const getShortId = (value) => {
+        const safeValue = String(value || '');
+        return safeValue.includes('-') ? safeValue.split('-')[1] : safeValue.slice(-6) || 'N/A';
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -135,7 +139,7 @@ const OwnerDashboard = () => {
                                         <tr><td colSpan="5" className="text-center py-4 text-muted">No recent bookings</td></tr>
                                     ) : recentBookings.map((b) => (
                                         <tr key={b.id}>
-                                            <td className="fw-500">#{b.id.split('-')[1] || b.id}</td>
+                                            <td className="fw-500">#{getShortId(b.id)}</td>
                                             <td>{b.stationName || 'Downtown Hub'}</td>
                                             <td>{new Date(b.startTime).toLocaleDateString()}</td>
                                             <td>

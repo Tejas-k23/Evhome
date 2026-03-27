@@ -109,7 +109,7 @@ const MyStations = () => {
         try {
             await ownerStationService.updateSocketStatus(socketId, newStatus);
             // Refresh local sockets state
-            setSockets(prev => prev.map(s => s.id === socketId ? { ...s, status: newStatus } : s));
+            setSockets(prev => prev.map(s => (s.id || s._id) === socketId ? { ...s, status: newStatus } : s));
         } catch (err) {
             alert(err.message);
         }
@@ -326,7 +326,7 @@ const MyStations = () => {
                         ) : (
                             <div className="row g-3">
                                 {sockets.map((socket) => (
-                                    <div className="col-md-6" key={socket.id}>
+                                    <div className="col-md-6" key={socket.id || socket._id}>
                                         <div style={{
                                             padding: '16px',
                                             borderRadius: '16px',
@@ -342,7 +342,7 @@ const MyStations = () => {
                                                         } fw-600`}>{socket.status}</span>
                                                 </div>
                                                 <button
-                                                    onClick={() => toggleSocketStatus(socket.id, socket.status)}
+                                                    onClick={() => toggleSocketStatus(socket.id || socket._id, socket.status)}
                                                     disabled={socket.status === 'CHARGING'}
                                                     className={`btn btn-sm ${socket.status === 'AVAILABLE' ? 'btn-outline-danger' : 'btn-outline-success'}`}
                                                     style={{ borderRadius: '8px' }}
