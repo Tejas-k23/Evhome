@@ -34,7 +34,7 @@
 // Default WiFi credentials (can be updated remotely from owner dashboard)
 #define WIFI_SSID_1 "realme 12 Pro+ 5G"
 #define WIFI_PASS_1 "amey@1103"
-
+//just git push
 #define WIFI_SSID_2 "BackupWiFi1"
 #define WIFI_PASS_2 "password2"
 
