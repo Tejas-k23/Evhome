@@ -16,6 +16,7 @@ const SessionsMonitoring = () => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ACTIVE');
     const owner = ownerAuthService.getCurrentOwner();
+    const ownerId = owner?.id || owner?._id || null;
     const navigate = useNavigate();
     const updateInterval = useRef(null);
 
@@ -46,7 +47,7 @@ const SessionsMonitoring = () => {
         }
 
         return () => clearInterval(updateInterval.current);
-    }, [owner]);
+    }, [ownerId]);
 
     const filteredSessions = sessions.filter((session) => (
         filter === 'ACTIVE' ? (session.current > 0) : (session.current === 0 || !session.current)

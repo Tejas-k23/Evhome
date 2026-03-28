@@ -25,6 +25,7 @@ const OwnerDashboard = () => {
     const [recentBookings, setRecentBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const owner = ownerAuthService.getCurrentOwner();
+    const ownerId = owner?.id || owner?._id || null;
     const navigate = useNavigate();
     const getShortId = (value) => {
         const safeValue = String(value || '');
@@ -60,7 +61,7 @@ const OwnerDashboard = () => {
             }
         };
         fetchData();
-    }, [owner]);
+    }, [ownerId]);
 
     if (loading) return <div>Loading dashboard...</div>;
 
@@ -146,7 +147,7 @@ const OwnerDashboard = () => {
                                     ) : recentBookings.map((b) => (
                                         <tr key={b.id}>
                                             <td className="fw-500">#{getShortId(b.id)}</td>
-                                            <td>{b.stationName || 'Downtown Hub'}</td>
+                                            <td>{b.stationName || b.stationId || 'Unknown station'}</td>
                                             <td>{new Date(b.startTime).toLocaleDateString()}</td>
                                             <td>
                                                 <span className={`badge ${b.status === 'COMPLETED' ? 'bg-success-subtle text-success' :

@@ -23,6 +23,11 @@ const RevenueBills = () => {
     const [bills, setBills] = useState([]);
     const [loading, setLoading] = useState(true);
     const owner = ownerAuthService.getCurrentOwner();
+    const ownerId = owner?.id || owner?._id || null;
+    const getShortId = (value) => {
+        const safeValue = String(value || '');
+        return safeValue.includes('-') ? safeValue.split('-')[1] : safeValue.slice(-6) || 'N/A';
+    };
 
     useEffect(() => {
         const fetchRevenueData = async () => {
@@ -45,10 +50,10 @@ const RevenueBills = () => {
             }
         };
         fetchRevenueData();
-    }, [owner]);
+    }, [ownerId]);
 
     const handleViewBill = (bill) => {
-        alert(`Viewing Bill #${bill.id.split('-')[1] || bill.id}\nStation: ${bill.stationId}\nAmount: ₹${bill.amount}\nStatus: ${bill.paymentStatus}`);
+        alert(`Viewing Bill #${getShortId(bill.id)}\nStation: ${bill.stationName || bill.stationId || 'Unknown station'}\nAmount: ₹${bill.amount}\nStatus: ${bill.paymentStatus}`);
     };
 
     const handleDownloadCSV = () => {
@@ -140,8 +145,8 @@ const RevenueBills = () => {
                                 <tr><td colSpan="7" className="text-center py-5 text-muted">No bills generated yet</td></tr>
                             ) : bills.map((bill) => (
                                 <tr key={bill.id}>
-                                    <td className="px-4 fw-bold">#{bill.id.split('-')[1]}</td>
-                                    <td>Station_{bill.stationId.split('-')[1]}</td>
+                                    <td className="px-4 fw-bold">#{getShortId(bill.id)}</td>
+                                    <td>{bill.stationName || bill.stationId || 'Unknown station'}</td>
                                     <td>{new Date(bill.createdAt).toLocaleDateString()}</td>
                                     <td>{bill.unitsKwh} kWh</td>
                                     <td className="fw-bold">₹{bill.amount}</td>

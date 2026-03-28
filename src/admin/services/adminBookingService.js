@@ -28,15 +28,30 @@ const adminFetch = async (endpoint, options = {}) => {
     return data;
 };
 
+const normalizeBooking = (booking) => ({
+    ...booking,
+    id: booking._id || booking.id || '',
+    userId: booking.user?._id || booking.user?.id || booking.userId || booking.user || '',
+    userVehicleNumber: booking.user?.vehicleNumber || booking.userVehicleNumber || '',
+    userMobileNumber: booking.user?.mobileNumber || booking.userMobileNumber || '',
+    stationId: booking.station?._id || booking.station?.id || booking.stationId || booking.station || '',
+    stationName: booking.station?.name || booking.stationName || '',
+    stationLocation: booking.station?.location || booking.stationLocation || '',
+    durationMinutes: booking.durationMinutes || 0,
+    energyKwh: booking.energyKwh || 0,
+    cost: booking.cost || 0,
+});
+
 export const adminBookingService = {
     getAll: async () => {
         const data = await adminFetch('/admin/bookings');
-        return data.bookings || data;
+        const bookings = data.bookings || data;
+        return Array.isArray(bookings) ? bookings.map(normalizeBooking) : [];
     },
 
     getById: async (id) => {
         const bookings = await adminBookingService.getAll();
-        return bookings.find(b => b._id === id || b.id === id) || null;
+        return bookings.find((b) => b.id === id || b._id === id) || null;
     },
 
     getSessionByBookingId: async (bookingId) => {

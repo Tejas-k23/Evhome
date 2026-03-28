@@ -20,6 +20,7 @@ const BookingsManagement = () => {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('ALL');
     const owner = ownerAuthService.getCurrentOwner();
+    const ownerId = owner?.id || owner?._id || null;
     const getShortId = (value) => {
         const safeValue = String(value || '');
         return safeValue.includes('-') ? safeValue.split('-')[1] : safeValue.slice(-6) || 'N/A';
@@ -44,7 +45,7 @@ const BookingsManagement = () => {
 
     useEffect(() => {
         fetchBookings();
-    }, [owner]);
+    }, [ownerId]);
 
     const handleStatusUpdate = async (bookingId, status) => {
         try {
@@ -123,7 +124,7 @@ const BookingsManagement = () => {
                                 <tr key={b.id}>
                                     <td className="px-4">
                                         <div className="fw-bold text-dark">#{getShortId(b.id)}</div>
-                                        <div className="small text-muted">{b.stationName || 'Loading...'}</div>
+                                        <div className="small text-muted">{b.stationName || b.stationId || 'Unknown station'}</div>
                                     </td>
                                     <td>
                                         <div className="d-flex align-items-center gap-2">

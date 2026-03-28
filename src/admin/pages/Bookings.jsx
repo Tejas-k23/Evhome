@@ -18,6 +18,7 @@ import { adminBookingService } from '../services/adminBookingService';
 const Bookings = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -30,9 +31,17 @@ const Bookings = () => {
 
     const fetchBookings = async () => {
         setLoading(true);
-        const data = await adminBookingService.getAll();
-        setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
-        setLoading(false);
+        setError('');
+        try {
+            const data = await adminBookingService.getAll();
+            setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
+        } catch (err) {
+            console.error('Failed to fetch admin bookings:', err);
+            setBookings([]);
+            setError(err.message || 'Failed to load bookings.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleUpdateStatus = async (id, status) => {
@@ -47,8 +56,10 @@ const Bookings = () => {
     };
 
     const filteredBookings = bookings.filter(b => {
-        const matchesSearch = b.userId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            b.id.toLowerCase().includes(searchTerm.toLowerCase());
+        const query = searchTerm.toLowerCase();
+        const matchesSearch = [b.userId, b.id, b.userVehicleNumber, b.stationName]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(query));
         const matchesStatus = statusFilter === 'ALL' || b.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -112,6 +123,10 @@ const Bookings = () => {
             <div style={{ display: 'grid', gap: '16px' }}>
                 {loading ? (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>Loading bookings...</div>
+                ) : error ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#DC2626', background: 'white', borderRadius: '20px', border: '1px solid #FECACA' }}>
+                        {error}
+                    </div>
                 ) : filteredBookings.length === 0 ? (
                     <div style={{ padding: '60px', textAlign: 'center', background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
                         <Ticket size={48} color="#E2E8F0" style={{ margin: '0 auto 16px' }} />
@@ -148,7 +163,7 @@ const Bookings = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <h4 style={{ margin: 0, fontSize: '16px', color: '#1E293B' }}>{booking.userId}</h4>
                                     <span style={{ fontSize: '12px', color: '#94A3B8' }}>•</span>
-                                    <span style={{ fontSize: '14px', color: '#64748B' }}>{booking.stationId === 'st-1' ? "Nexus Hub" : "Green Charge"}</span>
+                                    <span style={{ fontSize: '14px', color: '#64748B' }}>{booking.stationName || booking.stationId || 'Unknown station'}</span>
                                 </div>
                             </div>
                         </div>
@@ -250,7 +265,7 @@ const Bookings = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', color: '#94A3B8', marginBottom: '4px' }}>STATION</label>
-                                    <p style={{ margin: 0, fontWeight: '600' }}>{selectedBooking.stationId}</p>
+                                    <p style={{ margin: 0, fontWeight: '600' }}>{selectedBooking.stationName || selectedBooking.stationId}</p>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', color: '#94A3B8', marginBottom: '4px' }}>START TIME</label>

@@ -33,6 +33,7 @@ const MyStations = () => {
     const [socketLoading, setSocketLoading] = useState(false);
 
     const owner = ownerAuthService.getCurrentOwner();
+    const ownerId = owner?.id || owner?._id || null;
     const getStationId = (station) => station.id || station._id;
 
     const fetchStations = async () => {
@@ -54,7 +55,7 @@ const MyStations = () => {
 
     useEffect(() => {
         fetchStations();
-    }, [owner]);
+    }, [ownerId]);
 
     const handleOpenModal = (station = null) => {
         if (station) {
