@@ -22,6 +22,7 @@ const emptyWifiNetwork = (priority) => ({
 });
 
 const getStationId = (station) => station?.id || station?._id;
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : 'Never');
 
 const StationDetails = () => {
     const { stationId } = useParams();
@@ -112,6 +113,49 @@ const StationDetails = () => {
         available: sockets.filter((socket) => socket.status === 'AVAILABLE').length,
         charging: sockets.filter((socket) => socket.status === 'CHARGING').length
     }), [sockets]);
+
+    const deviceStatus = useMemo(() => {
+        if (!station) {
+            return {
+                label: 'Loading...',
+                variant: 'secondary',
+                lastHeartbeatAt: null,
+                lastDataAt: null
+            };
+        }
+
+        const HEARTBEAT_STALE_MS = 5 * 60 * 1000;
+        const DATA_STALE_MS = 10 * 60 * 1000;
+        const now = Date.now();
+        const lastHeartbeatAt = station.lastHeartbeatAt ? new Date(station.lastHeartbeatAt) : null;
+        const lastDataAt = station.lastDataAt ? new Date(station.lastDataAt) : null;
+
+        if (!station.iotApiKey) {
+            return { label: 'Not Configured', variant: 'secondary', lastHeartbeatAt, lastDataAt };
+        }
+
+        if (!lastHeartbeatAt) {
+            return { label: 'No Heartbeat Yet', variant: 'warning', lastHeartbeatAt, lastDataAt };
+        }
+
+        if (now - lastHeartbeatAt.getTime() > HEARTBEAT_STALE_MS) {
+            return { label: 'Offline', variant: 'danger', lastHeartbeatAt, lastDataAt };
+        }
+
+        if (!lastDataAt || now - lastDataAt.getTime() > DATA_STALE_MS) {
+            return { label: 'Connected, No Data', variant: 'warning', lastHeartbeatAt, lastDataAt };
+        }
+
+        return { label: 'Online (Sending Data)', variant: 'success', lastHeartbeatAt, lastDataAt };
+    }, [station]);
+
+    const statusBadgeClass = {
+        success: 'bg-success-subtle text-success',
+        warning: 'bg-warning-subtle text-warning',
+        danger: 'bg-danger-subtle text-danger',
+        info: 'bg-primary-subtle text-primary',
+        secondary: 'bg-secondary-subtle text-secondary'
+    }[deviceStatus.variant] || 'bg-secondary-subtle text-secondary';
 
     const handleGenerateApiKey = async () => {
         if (!station) return;
@@ -502,6 +546,26 @@ const StationDetails = () => {
                                     </div>
                                 </form>
                             )}
+                        </div>
+
+                        <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '24px', marginTop: '24px' }}>
+                            <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
+                                <div className="d-flex align-items-center gap-2">
+                                    <Cpu size={18} className="text-success" />
+                                    <h6 className="fw-bold mb-0">Device Status</h6>
+                                </div>
+                                <span className={`badge ${statusBadgeClass} px-3 py-2 rounded-pill`}>{deviceStatus.label}</span>
+                            </div>
+
+                            <div className="small text-muted mb-2">
+                                Last heartbeat: <span className="fw-semibold text-dark">{formatDateTime(deviceStatus.lastHeartbeatAt)}</span>
+                            </div>
+                            <div className="small text-muted mb-2">
+                                Last data: <span className="fw-semibold text-dark">{formatDateTime(deviceStatus.lastDataAt)}</span>
+                            </div>
+                            <div className="small text-muted">
+                                Status logic: heartbeat within 5 minutes, data within 10 minutes.
+                            </div>
                         </div>
 
                         <div style={{ background: 'linear-gradient(135deg, #DCFCE7, #DBEAFE)', borderRadius: '24px', padding: '24px', marginTop: '24px' }}>

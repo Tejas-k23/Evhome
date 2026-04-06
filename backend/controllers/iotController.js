@@ -39,6 +39,11 @@ exports.pushData = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Socket not found' });
     }
 
+    const now = new Date();
+    station.lastDataAt = now;
+    station.lastHeartbeatAt = now;
+    await station.save();
+
     // Find active booking for this station + socket
     const activeBooking = await Booking.findOne({
       station: station._id,
@@ -113,6 +118,10 @@ exports.getConfig = async (req, res, next) => {
 // @route   POST /api/iot/heartbeat
 exports.heartbeat = async (req, res, next) => {
   try {
+    const station = req.station;
+    station.lastHeartbeatAt = new Date();
+    await station.save();
+
     res.json({
       success: true,
       serverTime: new Date().toISOString(),

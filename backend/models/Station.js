@@ -60,6 +60,14 @@ const stationSchema = new mongoose.Schema(
       validate: [arr => arr.length <= 3, 'Maximum 3 WiFi networks allowed'],
       default: [],
     },
+    lastHeartbeatAt: {
+      type: Date,
+      default: null,
+    },
+    lastDataAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
