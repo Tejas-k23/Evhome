@@ -113,22 +113,43 @@ exports.stopCharging = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Booking is not active' });
     }
 
+    let finalEnergyKwh = typeof energyKwh === 'number' ? energyKwh : null;
+    let finalCost = typeof cost === 'number' ? cost : null;
+
+    if (finalEnergyKwh === null || finalCost === null) {
+      const session = await Session.findOne({ booking: booking._id });
+
+      if (finalEnergyKwh === null) {
+        finalEnergyKwh = session?.energyKwh ?? booking.energyKwh ?? 0;
+      }
+
+      if (finalCost === null) {
+        if (session?.cost !== undefined && session?.cost !== null) {
+          finalCost = session.cost;
+        } else {
+          const station = await Station.findById(booking.station).select('pricePerKwh');
+          const pricePerKwh = station?.pricePerKwh ?? 0;
+          finalCost = (finalEnergyKwh || 0) * pricePerKwh;
+        }
+      }
+    }
+
     booking.status = 'COMPLETED';
-    booking.energyKwh = energyKwh || 0;
-    booking.cost = cost || 0;
+    booking.energyKwh = finalEnergyKwh || 0;
+    booking.cost = finalCost || 0;
     await booking.save();
 
     const bill = await Bill.create({
       user: booking.user,
       booking: booking._id,
-      amount: cost || 0,
-      unitsKwh: energyKwh || 0,
+      amount: finalCost || 0,
+      unitsKwh: finalEnergyKwh || 0,
     });
 
     // Update the session
     await Session.findOneAndUpdate(
       { booking: booking._id },
-      { energyKwh: energyKwh || 0, cost: cost || 0 }
+      { energyKwh: finalEnergyKwh || 0, cost: finalCost || 0 }
     );
 
     res.json({ success: true, booking, bill });
