@@ -1,7 +1,7 @@
 import './index.css'
 import './animations.css'
 import AnimationEffects from './AnimationEffects'
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, useLocation } from "react-router-dom"
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
@@ -42,11 +42,14 @@ import SessionsMonitoring from './owner/pages/SessionsMonitoring'
 import RevenueBills from './owner/pages/RevenueBills'
 
 function App() {
+  const location = useLocation()
+  const isOwnerRoute = location.pathname.startsWith('/owner')
+
   return (
     <AuthProvider>
       <AnimationEffects>
         <ScrollToTop />
-        <Navbar />
+        {!isOwnerRoute ? <Navbar /> : null}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/services" element={<Services />} />
