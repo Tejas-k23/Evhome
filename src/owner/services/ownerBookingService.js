@@ -46,13 +46,28 @@ export const ownerBookingService = {
         }));
     },
 
-    updateBookingStatus: async (bookingId, status) => {
+    updateBookingStatus: async (bookingId, status, energyKwh, cost) => {
         const endpoint = status === 'CANCELLED'
             ? `/bookings/${bookingId}/cancel`
             : status === 'ACTIVE'
                 ? `/bookings/${bookingId}/start`
                 : `/bookings/${bookingId}/stop`;
 
-        return ownerFetch(endpoint, { method: 'PUT' });
+        if (status !== 'COMPLETED') {
+            return ownerFetch(endpoint, { method: 'PUT' });
+        }
+
+        const payload = {};
+        const energyNum = Number(energyKwh);
+        const costNum = Number(cost);
+        if (Number.isFinite(energyNum)) payload.energyKwh = energyNum;
+        if (Number.isFinite(costNum)) payload.cost = costNum;
+
+        const options = { method: 'PUT' };
+        if (Object.keys(payload).length > 0) {
+            options.body = JSON.stringify(payload);
+        }
+
+        return ownerFetch(endpoint, options);
     }
 };

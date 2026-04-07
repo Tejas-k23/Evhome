@@ -75,9 +75,18 @@ export const ownerSessionService = {
         }
     },
 
-    stopSession: async (bookingId) => {
-        return ownerFetch(`/bookings/${bookingId}/stop`, {
-            method: 'PUT',
-        });
+    stopSession: async (bookingId, energyKwh, cost) => {
+        const payload = {};
+        const energyNum = Number(energyKwh);
+        const costNum = Number(cost);
+        if (Number.isFinite(energyNum)) payload.energyKwh = energyNum;
+        if (Number.isFinite(costNum)) payload.cost = costNum;
+
+        const options = { method: 'PUT' };
+        if (Object.keys(payload).length > 0) {
+            options.body = JSON.stringify(payload);
+        }
+
+        return ownerFetch(`/bookings/${bookingId}/stop`, options);
     }
 };

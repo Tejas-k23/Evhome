@@ -62,7 +62,7 @@ export const adminBookingService = {
         }
     },
 
-    updateStatus: async (id, status) => {
+    updateStatus: async (id, status, energyKwh, cost) => {
         // Use the booking routes for status updates
         const endpoint = status === 'CANCELLED'
             ? `/bookings/${id}/cancel`
@@ -70,6 +70,21 @@ export const adminBookingService = {
                 ? `/bookings/${id}/start`
                 : `/bookings/${id}/stop`;
 
-        return adminFetch(endpoint, { method: 'PUT' });
+        if (status !== 'COMPLETED') {
+            return adminFetch(endpoint, { method: 'PUT' });
+        }
+
+        const payload = {};
+        const energyNum = Number(energyKwh);
+        const costNum = Number(cost);
+        if (Number.isFinite(energyNum)) payload.energyKwh = energyNum;
+        if (Number.isFinite(costNum)) payload.cost = costNum;
+
+        const options = { method: 'PUT' };
+        if (Object.keys(payload).length > 0) {
+            options.body = JSON.stringify(payload);
+        }
+
+        return adminFetch(endpoint, options);
     }
 };
