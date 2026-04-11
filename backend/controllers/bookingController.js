@@ -80,20 +80,86 @@ exports.startCharging = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
+    if (booking.status === 'ACTIVE') {
+      return res.json({ success: true, booking, message: 'Session already active' });
+    }
+
     if (booking.status !== 'BOOKED') {
       return res.status(400).json({ success: false, message: `Cannot start charging, current status: ${booking.status}` });
     }
 
-    booking.status = 'ACTIVE';
+    const HEARTBEAT_STALE_MS = 5 * 60 * 1000;
+    const DATA_STALE_MS = 10 * 60 * 1000;
+    const now = new Date();
+
+    const stationId = booking.station?._id || booking.station;
+    const station = await Station.findById(stationId).select('lastHeartbeatAt lastDataAt iotApiKey');
+    const iotConfigured = !!station?.iotApiKey;
+    const heartbeatActive = iotConfigured && station?.lastHeartbeatAt
+      ? now - new Date(station.lastHeartbeatAt) <= HEARTBEAT_STALE_MS
+      : false;
+    const dataActive = iotConfigured && station?.lastDataAt
+      ? now - new Date(station.lastDataAt) <= DATA_STALE_MS
+      : false;
+
+    const isAdmin = req.userRole === 'admin';
+    const isOwner = req.userRole === 'owner';
+    const isUser = !isOwner && !isAdmin;
+
+    if (isUser && iotConfigured && !heartbeatActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'Station heartbeat is inactive. Please wait for the device to come online.',
+      });
+    }
+
+    if (!booking.sessionInitiatedAt) {
+      booking.sessionInitiatedAt = now;
+      booking.sessionInitiatedBy = isOwner || isAdmin ? 'owner' : 'user';
+    }
+
+    if ((isOwner || isAdmin) && !booking.ownerStartedAt) {
+      booking.ownerStartedAt = now;
+    }
+
+    if (isUser && !booking.userStartedAt) {
+      booking.userStartedAt = now;
+    }
+
+    const ownerReady = !!booking.ownerStartedAt;
+    const userReady = !!booking.userStartedAt;
+    const userCanBypassOwner = isUser && userReady && dataActive;
+
+    if (userReady && (ownerReady || userCanBypassOwner)) {
+      booking.status = 'ACTIVE';
+    }
+
     await booking.save();
 
-    // Create an IoT session record
-    await Session.create({ booking: booking._id });
+    if (booking.status === 'ACTIVE') {
+      const existingSession = await Session.findOne({ booking: booking._id });
+      if (!existingSession) {
+        await Session.create({
+          booking: booking._id,
+          startedAt: booking.sessionInitiatedAt || now,
+          startedBy: booking.sessionInitiatedBy || (isOwner || isAdmin ? 'owner' : 'user'),
+          source: 'manual',
+        });
+      } else if (!existingSession.startedAt) {
+        existingSession.startedAt = booking.sessionInitiatedAt || now;
+        existingSession.startedBy = booking.sessionInitiatedBy || (isOwner || isAdmin ? 'owner' : 'user');
+        await existingSession.save();
+      }
+    }
 
     const populated = await Booking.findById(booking._id)
       .populate('station', 'name location pricePerKwh');
 
-    res.json({ success: true, booking: populated });
+    const message = booking.status === 'ACTIVE'
+      ? 'Session started'
+      : 'Initiation recorded. Waiting for the other party to start.';
+
+    res.json({ success: true, booking: populated, message });
   } catch (error) {
     next(error);
   }

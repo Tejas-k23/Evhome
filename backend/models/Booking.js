@@ -28,6 +28,23 @@ const bookingSchema = new mongoose.Schema(
     durationMinutes: {
       type: Number,
     },
+    userStartedAt: {
+      type: Date,
+      default: null,
+    },
+    ownerStartedAt: {
+      type: Date,
+      default: null,
+    },
+    sessionInitiatedAt: {
+      type: Date,
+      default: null,
+    },
+    sessionInitiatedBy: {
+      type: String,
+      enum: ['user', 'owner'],
+      default: null,
+    },
     status: {
       type: String,
       enum: ['BOOKED', 'ACTIVE', 'COMPLETED', 'CANCELLED'],

@@ -35,6 +35,15 @@ const sessionSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    startedAt: {
+      type: Date,
+      default: null,
+    },
+    startedBy: {
+      type: String,
+      enum: ['user', 'owner'],
+      default: null,
+    },
     source: {
       type: String,
       enum: ['iot', 'simulated', 'manual'],

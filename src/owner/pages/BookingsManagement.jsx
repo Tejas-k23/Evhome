@@ -49,7 +49,10 @@ const BookingsManagement = () => {
 
     const handleStatusUpdate = async (bookingId, status) => {
         try {
-            await ownerBookingService.updateBookingStatus(bookingId, status);
+            const res = await ownerBookingService.updateBookingStatus(bookingId, status);
+            if (res?.message && res?.booking?.status !== 'ACTIVE') {
+                alert(res.message);
+            }
             // Redundant call removed - backend /start already handles activation
             fetchBookings();
         } catch (err) {

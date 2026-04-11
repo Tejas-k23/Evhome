@@ -79,9 +79,16 @@ const Dashboard = () => {
     }, [activeBooking]);
 
     const handleStart = async (bookingId) => {
-        const res = await bookingService.startCharging(bookingId);
-        if (res.success) {
-            fetchData();
+        try {
+            const res = await bookingService.startCharging(bookingId);
+            if (res?.message && res?.booking?.status !== 'ACTIVE') {
+                alert(res.message);
+            }
+            if (res.success) {
+                fetchData();
+            }
+        } catch (error) {
+            alert(error.message || 'Unable to start the session right now.');
         }
     };
 

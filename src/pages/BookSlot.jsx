@@ -21,8 +21,9 @@ const BookSlot = () => {
         return null;
     });
     const [searchQuery, setSearchQuery] = useState('');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
+    const [bookingDate, setBookingDate] = useState('');
+    const [bookingTime, setBookingTime] = useState('');
+    const [durationHours, setDurationHours] = useState('1');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -74,19 +75,51 @@ const BookSlot = () => {
         console.log("BookSlot: Selected station changed:", selectedStation);
     }, [selectedStation]);
 
+    const formatLocalDateTime = (dateValue) => {
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        const hours = String(dateValue.getHours()).padStart(2, '0');
+        const minutes = String(dateValue.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
+    const getComputedTimes = () => {
+        if (!bookingDate || !bookingTime || !durationHours) {
+            return { startValue: '', endValue: '', endLabel: '' };
+        }
+        const start = new Date(`${bookingDate}T${bookingTime}`);
+        if (Number.isNaN(start.getTime())) {
+            return { startValue: '', endValue: '', endLabel: '' };
+        }
+        const durationMinutes = Number(durationHours) * 60;
+        const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+        return {
+            startValue: formatLocalDateTime(start),
+            endValue: formatLocalDateTime(end),
+            endLabel: end.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+        };
+    };
+
     const handleBooking = async (e) => {
         e.preventDefault();
         if (!selectedStation) {
             setError("Please select a charging station first");
             return;
         }
-        if (!startTime || !endTime) {
-            setError("Please select both start and end times");
+        if (!bookingDate || !bookingTime || !durationHours) {
+            setError("Please select a date, start time, and duration");
             return;
         }
 
-        const start = new Date(startTime);
-        const end = new Date(endTime);
+        const { startValue, endValue } = getComputedTimes();
+        const start = new Date(startValue);
+        const end = new Date(endValue);
+
+        if (!startValue || !endValue || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            setError("Please select a valid date and time");
+            return;
+        }
 
         if (start <= new Date()) {
             setError("Start time must be in the future");
@@ -102,14 +135,14 @@ const BookSlot = () => {
         setError('');
         try {
             const stationId = selectedStation._id || selectedStation.id;
-            console.log("Attempting booking for station:", stationId, { startTime, endTime });
+            console.log("Attempting booking for station:", stationId, { startValue, endValue });
 
             if (!stationId) {
                 setError("Station ID is missing. Please try selecting the station again.");
                 return;
             }
 
-            const res = await bookingService.createBooking(stationId, null, startTime, endTime);
+            const res = await bookingService.createBooking(stationId, null, startValue, endValue);
             if (res.success) {
                 navigate('/dashboard');
             } else {
@@ -259,29 +292,55 @@ const BookSlot = () => {
                                 <div className="row g-3 mb-4">
                                     <div className="col-md-12">
                                         <label className="form-label small fw-bold d-flex align-items-center gap-2">
-                                            <Calendar size={14} /> Start Date & Time
+                                            <Calendar size={14} /> Select Date
                                         </label>
                                         <input
-                                            type="datetime-local"
+                                            type="date"
                                             className="form-control"
                                             required
-                                            value={startTime}
-                                            onChange={(e) => setStartTime(e.target.value)}
+                                            value={bookingDate}
+                                            onChange={(e) => setBookingDate(e.target.value)}
+                                            min={new Date().toISOString().split('T')[0]}
                                             style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--gray-200)' }}
                                         />
                                     </div>
                                     <div className="col-md-12">
                                         <label className="form-label small fw-bold d-flex align-items-center gap-2">
-                                            <Clock size={14} /> End Date & Time
+                                            <Clock size={14} /> Start Time
                                         </label>
                                         <input
-                                            type="datetime-local"
+                                            type="time"
                                             className="form-control"
                                             required
-                                            value={endTime}
-                                            onChange={(e) => setEndTime(e.target.value)}
+                                            value={bookingTime}
+                                            onChange={(e) => setBookingTime(e.target.value)}
+                                            disabled={!bookingDate}
                                             style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--gray-200)' }}
                                         />
+                                    </div>
+                                    <div className="col-md-12">
+                                        <label className="form-label small fw-bold d-flex align-items-center gap-2">
+                                            <Clock size={14} /> Duration
+                                        </label>
+                                        <select
+                                            className="form-select"
+                                            required
+                                            value={durationHours}
+                                            onChange={(e) => setDurationHours(e.target.value)}
+                                            disabled={!bookingDate || !bookingTime}
+                                            style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--gray-200)' }}
+                                        >
+                                            <option value="1">1 hour</option>
+                                            <option value="2">2 hours</option>
+                                            <option value="3">3 hours</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 rounded-3 mb-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                                    <div className="small text-muted mb-1">Ends At</div>
+                                    <div className="fw-semibold">
+                                        {getComputedTimes().endLabel || 'Select date, time, and duration to preview.'}
                                     </div>
                                 </div>
 
