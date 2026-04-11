@@ -130,8 +130,20 @@ exports.startCharging = async (req, res, next) => {
     const userReady = !!booking.userStartedAt;
     const userCanBypassOwner = isUser && userReady && dataActive;
 
-    if (userReady && (ownerReady || userCanBypassOwner)) {
-      booking.status = 'ACTIVE';
+    const startWindow = booking.startTime ? new Date(booking.startTime) : null;
+    const endWindow = booking.endTime ? new Date(booking.endTime) : null;
+    const withinWindow = startWindow && endWindow
+      ? now >= startWindow && now <= endWindow
+      : true;
+
+    if (withinWindow) {
+      if (userReady && (ownerReady || userCanBypassOwner)) {
+        booking.status = 'ACTIVE';
+      }
+    } else {
+      if (ownerReady && userReady) {
+        booking.status = 'ACTIVE';
+      }
     }
 
     await booking.save();
@@ -157,7 +169,9 @@ exports.startCharging = async (req, res, next) => {
 
     const message = booking.status === 'ACTIVE'
       ? 'Session started'
-      : 'Initiation recorded. Waiting for the other party to start.';
+      : withinWindow
+        ? 'Initiation recorded. Waiting for the other party to start.'
+        : 'Outside booking time. Both owner and user must start to activate.';
 
     res.json({ success: true, booking: populated, message });
   } catch (error) {
