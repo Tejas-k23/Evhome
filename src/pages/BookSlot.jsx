@@ -24,6 +24,9 @@ const BookSlot = () => {
     const [bookingDate, setBookingDate] = useState('');
     const [bookingTime, setBookingTime] = useState('');
     const [durationHours, setDurationHours] = useState('1');
+    const [sockets, setSockets] = useState([]);
+    const [socketLoading, setSocketLoading] = useState(false);
+    const [selectedSocketId, setSelectedSocketId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -73,6 +76,8 @@ const BookSlot = () => {
 
     useEffect(() => {
         console.log("BookSlot: Selected station changed:", selectedStation);
+        setSelectedSocketId('');
+        setSockets([]);
     }, [selectedStation]);
 
     const formatLocalDateTime = (dateValue) => {
@@ -100,6 +105,35 @@ const BookSlot = () => {
             endLabel: end.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
         };
     };
+
+    useEffect(() => {
+        const fetchSockets = async () => {
+            if (!selectedStation) {
+                setSockets([]);
+                return;
+            }
+
+            const { startValue, endValue } = getComputedTimes();
+            if (!startValue || !endValue) {
+                setSockets([]);
+                return;
+            }
+
+            setSocketLoading(true);
+            try {
+                const stationId = selectedStation._id || selectedStation.id;
+                const data = await stationService.getSocketsByStation(stationId, startValue, endValue);
+                setSockets(data);
+            } catch (err) {
+                console.error('Failed to fetch sockets', err);
+                setSockets([]);
+            } finally {
+                setSocketLoading(false);
+            }
+        };
+
+        fetchSockets();
+    }, [selectedStation, bookingDate, bookingTime, durationHours]);
 
     const handleBooking = async (e) => {
         e.preventDefault();
@@ -142,7 +176,8 @@ const BookSlot = () => {
                 return;
             }
 
-            const res = await bookingService.createBooking(stationId, null, startValue, endValue);
+            const socketId = selectedSocketId || null;
+            const res = await bookingService.createBooking(stationId, socketId, startValue, endValue);
             if (res.success) {
                 navigate('/dashboard');
             } else {
@@ -334,6 +369,36 @@ const BookSlot = () => {
                                             <option value="2">2 hours</option>
                                             <option value="3">3 hours</option>
                                         </select>
+                                    </div>
+                                    <div className="col-md-12">
+                                        <label className="form-label small fw-bold d-flex align-items-center gap-2">
+                                            Select Socket (Optional)
+                                        </label>
+                                        <select
+                                            className="form-select"
+                                            value={selectedSocketId}
+                                            onChange={(e) => setSelectedSocketId(e.target.value)}
+                                            disabled={!selectedStation || socketLoading || sockets.length === 0}
+                                            style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--gray-200)' }}
+                                        >
+                                            <option value="">Auto-assign best available</option>
+                                            {sockets.map((socket) => (
+                                                <option
+                                                    key={socket.id || socket._id}
+                                                    value={socket.id || socket._id}
+                                                    disabled={socket.isBookable === false}
+                                                >
+                                                    Socket #{socket.socketNumber} {socket.isBookable === false ? '(Unavailable)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="small text-muted mt-2">
+                                            {socketLoading
+                                                ? 'Loading sockets for the selected time...'
+                                                : sockets.length === 0
+                                                    ? 'Select date and time to view sockets.'
+                                                    : 'Choose a socket or leave it on auto-assign.'}
+                                        </div>
                                     </div>
                                 </div>
 

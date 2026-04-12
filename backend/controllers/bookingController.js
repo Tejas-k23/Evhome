@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Station = require('../models/Station');
+const Socket = require('../models/Socket');
 const Bill = require('../models/Bill');
 const Session = require('../models/Session');
 
@@ -13,26 +14,101 @@ const getBookingForAction = async (bookingId, userId, userRole) => {
   return null;
 };
 
+const ensureSocketsForStation = async (station) => {
+  let sockets = await Socket.find({ station: station._id }).sort({ socketNumber: 1 });
+
+  if (sockets.length === 0) {
+    const socketDocs = [];
+    for (let i = 1; i <= station.socketCount; i++) {
+      socketDocs.push({ station: station._id, socketNumber: i, status: 'AVAILABLE' });
+    }
+    sockets = await Socket.insertMany(socketDocs);
+  }
+
+  return sockets;
+};
+
+const isSocketBookedForWindow = async (socketId, startTime, endTime) => {
+  if (!startTime || !endTime) return false;
+
+  return Booking.exists({
+    socket: socketId,
+    status: { $in: ['BOOKED', 'ACTIVE'] },
+    startTime: { $lt: endTime },
+    endTime: { $gt: startTime },
+  });
+};
+
+const resolveBookingSocket = async ({ station, socketId, startTime, endTime }) => {
+  const sockets = await ensureSocketsForStation(station);
+
+  if (socketId) {
+    const requested = sockets.find((s) => s._id.toString() === socketId.toString());
+    if (!requested) {
+      return { error: 'Selected socket is not part of this station.', socket: null };
+    }
+    if (requested.status !== 'AVAILABLE') {
+      return { error: 'Selected socket is not available.', socket: null };
+    }
+    const hasOverlap = await isSocketBookedForWindow(requested._id, startTime, endTime);
+    if (hasOverlap) {
+      return { error: 'Selected socket is already booked for this time window.', socket: null };
+    }
+    return { socket: requested, error: null };
+  }
+
+  for (const socket of sockets) {
+    if (socket.status !== 'AVAILABLE') continue;
+    const hasOverlap = await isSocketBookedForWindow(socket._id, startTime, endTime);
+    if (!hasOverlap) {
+      return { socket, error: null };
+    }
+  }
+
+  return { socket: null, error: 'No available sockets for this time window.' };
+};
+
+const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
+
 // @desc    Create a new booking
 // @route   POST /api/bookings
 exports.createBooking = async (req, res, next) => {
   try {
-    const { stationId, startTime, endTime } = req.body;
+    const { stationId, socketId, startTime, endTime } = req.body;
 
     const station = await Station.findById(stationId);
     if (!station || station.status !== 'ACTIVE') {
       return res.status(400).json({ success: false, message: 'Station not available' });
     }
 
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    if (!isValidDate(startDate) || !isValidDate(endDate)) {
+      return res.status(400).json({ success: false, message: 'Invalid start or end time' });
+    }
+
+    const { socket, error: socketError } = await resolveBookingSocket({
+      station,
+      socketId,
+      startTime: startDate,
+      endTime: endDate,
+    });
+    if (!socket) {
+      return res.status(409).json({ success: false, message: socketError || 'No socket available' });
+    }
+
     const booking = await Booking.create({
       user: req.userId,
       station: stationId,
+      socket: socket._id,
       startTime,
       endTime,
     });
 
     const populated = await Booking.findById(booking._id)
-      .populate('station', 'name location pricePerKwh');
+      .populate('station', 'name location pricePerKwh')
+      .populate('socket', 'socketNumber status');
 
     res.status(201).json({ success: true, booking: populated });
   } catch (error) {
@@ -81,11 +157,35 @@ exports.startCharging = async (req, res, next) => {
     }
 
     if (booking.status === 'ACTIVE') {
+      if (booking.socket) {
+        await Socket.findByIdAndUpdate(booking.socket, { status: 'OCCUPIED' });
+      }
       return res.json({ success: true, booking, message: 'Session already active' });
     }
 
     if (booking.status !== 'BOOKED') {
       return res.status(400).json({ success: false, message: `Cannot start charging, current status: ${booking.status}` });
+    }
+
+    if (!booking.socket) {
+      const stationId = booking.station?._id || booking.station;
+      const stationForSocket = await Station.findById(stationId);
+      if (!stationForSocket) {
+        return res.status(400).json({ success: false, message: 'Station not available' });
+      }
+
+      const { socket, error: socketError } = await resolveBookingSocket({
+        station: stationForSocket,
+        socketId: null,
+        startTime: booking.startTime ? new Date(booking.startTime) : null,
+        endTime: booking.endTime ? new Date(booking.endTime) : null,
+      });
+
+      if (!socket) {
+        return res.status(409).json({ success: false, message: socketError || 'No socket available' });
+      }
+
+      booking.socket = socket._id;
     }
 
     const HEARTBEAT_STALE_MS = 5 * 60 * 1000;
@@ -149,6 +249,9 @@ exports.startCharging = async (req, res, next) => {
     await booking.save();
 
     if (booking.status === 'ACTIVE') {
+      if (booking.socket) {
+        await Socket.findByIdAndUpdate(booking.socket, { status: 'OCCUPIED' });
+      }
       const existingSession = await Session.findOne({ booking: booking._id });
       if (!existingSession) {
         await Session.create({

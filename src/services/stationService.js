@@ -43,4 +43,19 @@ export const stationService = {
         const stations = data.stations || data;
         return stations.map(s => ({ ...s, id: s._id || s.id }));
     },
+
+    getSocketsByStation: async (stationId, startTime, endTime) => {
+        const params = new URLSearchParams();
+        if (startTime) params.set('startTime', startTime);
+        if (endTime) params.set('endTime', endTime);
+
+        const url = `${API_URL}/stations/${stationId}/sockets${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url);
+        const data = await safeParse(response, `/stations/${stationId}/sockets`);
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to fetch sockets');
+        }
+        const sockets = data.sockets || [];
+        return sockets.map(s => ({ ...s, id: s._id || s.id }));
+    },
 };
