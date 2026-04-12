@@ -45,11 +45,27 @@ exports.pushData = async (req, res, next) => {
     await station.save();
 
     // Find active booking for this station + socket
-    const activeBooking = await Booking.findOne({
+    let activeBooking = await Booking.findOne({
       station: station._id,
       socket: socket._id,
       status: 'ACTIVE',
     });
+
+    // Fallback: if booking exists but socket not assigned yet,
+    // bind the single active booking to this socket.
+    if (!activeBooking) {
+      const unassignedActive = await Booking.find({
+        station: station._id,
+        socket: null,
+        status: 'ACTIVE',
+      });
+
+      if (unassignedActive.length === 1) {
+        activeBooking = unassignedActive[0];
+        activeBooking.socket = socket._id;
+        await activeBooking.save();
+      }
+    }
 
     if (!activeBooking) {
       // No active booking — still accept data but flag it

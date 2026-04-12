@@ -1,5 +1,6 @@
 const Session = require('../models/Session');
 const Booking = require('../models/Booking');
+const Station = require('../models/Station');
 
 const PRICE_PER_KWH = 10;
 
@@ -74,7 +75,41 @@ exports.getLiveData = async (req, res, next) => {
       }
     }
 
-    // Fallback: simulate data
+    const station = await Station.findById(booking.station).select('iotApiKey');
+    const iotConfigured = !!station?.iotApiKey;
+
+    // If IoT is configured, do NOT simulate phantom usage when data is stale.
+    if (iotConfigured) {
+      const data = session
+        ? {
+            voltage: Number(session.voltage || 0).toFixed(1),
+            current: Number(session.current || 0).toFixed(2),
+            power: Number(session.power || 0).toFixed(2),
+            energyKwh: Number(session.energyKwh || 0).toFixed(3),
+            frequency: Number(session.frequency || 0).toFixed(1),
+            powerFactor: Number(session.powerFactor || 0).toFixed(2),
+            cost: Number(session.cost || 0).toFixed(2),
+          }
+        : {
+            voltage: '0.0',
+            current: '0.00',
+            power: '0.00',
+            energyKwh: '0.000',
+            frequency: '0.0',
+            powerFactor: '0.00',
+            cost: '0.00',
+          };
+
+      return res.json({
+        success: true,
+        source: 'iot-stale',
+        stale: true,
+        lastUpdatedAt: session?.updatedAt || null,
+        data,
+      });
+    }
+
+    // Fallback: simulate data (non-IoT stations)
     const voltage = Math.floor(Math.random() * (250 - 210 + 1)) + 210;
     let currentAmp = 0;
     let energyKwh = session ? session.energyKwh : 0;
