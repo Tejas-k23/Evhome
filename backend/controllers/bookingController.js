@@ -322,6 +322,10 @@ exports.stopCharging = async (req, res, next) => {
     booking.cost = finalCost || 0;
     await booking.save();
 
+    if (booking.socket) {
+      await Socket.findByIdAndUpdate(booking.socket, { status: 'AVAILABLE' });
+    }
+
     const bill = await Bill.create({
       user: booking.user,
       booking: booking._id,
@@ -356,6 +360,10 @@ exports.cancelBooking = async (req, res, next) => {
 
     booking.status = 'CANCELLED';
     await booking.save();
+
+    if (booking.socket) {
+      await Socket.findByIdAndUpdate(booking.socket, { status: 'AVAILABLE' });
+    }
 
     res.json({ success: true, booking });
   } catch (error) {
