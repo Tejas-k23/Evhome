@@ -13,7 +13,8 @@ const Dashboard = () => {
         voltage: '0.0',
         current: '0.0',
         energyKwh: '0.000',
-        cost: '0.00'
+        cost: '0.00',
+        state: 'UNKNOWN'
     });
     const [recentBookings, setRecentBookings] = useState([]);
     const [recentBills, setRecentBills] = useState([]);
@@ -39,14 +40,16 @@ const Dashboard = () => {
                 setLiveData(prev => ({
                     ...prev,
                     energyKwh: active.energyKwh || '0.000',
-                    cost: active.cost || '0.00'
+                    cost: active.cost || '0.00',
+                    state: prev.state || 'UNKNOWN'
                 }));
             } else {
                 setLiveData({
                     voltage: '230.5',
                     current: '0.0',
                     energyKwh: '0.000',
-                    cost: '0.00'
+                    cost: '0.00',
+                    state: 'UNKNOWN'
                 });
             }
         } catch (err) {
@@ -79,7 +82,8 @@ const Dashboard = () => {
                     voltage: data.voltage ?? '0.0',
                     current: data.current ?? '0.0',
                     energyKwh: data.energyKwh ?? '0.000',
-                    cost: data.cost ?? '0.00'
+                    cost: data.cost ?? '0.00',
+                    state: data.state ?? 'UNKNOWN'
                 });
             } catch (err) {
                 console.error('Failed to fetch live data', err);
@@ -140,6 +144,7 @@ const Dashboard = () => {
                         { label: 'Voltage', value: `${liveData.voltage} V`, icon: Zap, color: '#0EA5E9' },
                         { label: 'Current', value: `${liveData.current} A`, icon: Activity, color: '#10B981' },
                         { label: 'Energy', value: `${liveData.energyKwh} kWh`, icon: Battery, color: '#F59E0B' },
+                        { label: 'State', value: liveData.state, icon: Activity, color: '#0F766E' },
                         { label: 'Est. Cost', value: `₹${liveData.cost}`, icon: CreditCard, color: '#6366F1' },
                     ].map((stat, i) => (
                         <div className="col-lg-3 col-6" key={i}>

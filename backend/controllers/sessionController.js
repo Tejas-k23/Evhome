@@ -4,6 +4,16 @@ const Station = require('../models/Station');
 
 const PRICE_PER_KWH = 10;
 
+const deriveDeviceState = (voltageValue, currentValue) => {
+  const voltage = Number(voltageValue || 0);
+  const current = Number(currentValue || 0);
+
+  if (voltage === 0) return 'POWER_CUT';
+  if (voltage > 0 && current === 0) return 'DEVICE_OFF';
+  if (voltage > 0 && current > 0) return 'DEVICE_ON';
+  return 'UNKNOWN';
+};
+
 // @desc    Get live session data for an active booking
 // @route   GET /api/sessions/:bookingId
 exports.getSessionByBooking = async (req, res, next) => {
@@ -59,6 +69,7 @@ exports.getLiveData = async (req, res, next) => {
     if (session && session.source === 'iot') {
       const ageMs = Date.now() - new Date(session.updatedAt).getTime();
       if (ageMs < 10000) {
+        const state = deriveDeviceState(session.voltage, session.current);
         return res.json({
           success: true,
           source: 'iot',
@@ -70,6 +81,7 @@ exports.getLiveData = async (req, res, next) => {
             frequency: session.frequency.toFixed(1),
             powerFactor: session.powerFactor.toFixed(2),
             cost: session.cost.toFixed(2),
+            state,
           },
         });
       }
@@ -77,9 +89,11 @@ exports.getLiveData = async (req, res, next) => {
 
     const station = await Station.findById(booking.station).select('iotApiKey');
     const iotConfigured = !!station?.iotApiKey;
+    const sessionIsIot = session?.source === 'iot';
 
     // If IoT is configured, do NOT simulate phantom usage when data is stale.
-    if (iotConfigured) {
+    if (iotConfigured || sessionIsIot) {
+      const state = deriveDeviceState(session?.voltage, session?.current);
       const data = session
         ? {
             voltage: Number(session.voltage || 0).toFixed(1),
@@ -89,6 +103,7 @@ exports.getLiveData = async (req, res, next) => {
             frequency: Number(session.frequency || 0).toFixed(1),
             powerFactor: Number(session.powerFactor || 0).toFixed(2),
             cost: Number(session.cost || 0).toFixed(2),
+            state,
           }
         : {
             voltage: '0.0',
@@ -98,6 +113,7 @@ exports.getLiveData = async (req, res, next) => {
             frequency: '0.0',
             powerFactor: '0.00',
             cost: '0.00',
+            state: 'POWER_CUT',
           };
 
       return res.json({
@@ -139,6 +155,7 @@ exports.getLiveData = async (req, res, next) => {
         frequency: '50.0',
         powerFactor: currentAmp > 0 ? '0.95' : '0.00',
         cost: cost.toFixed(2),
+        state: deriveDeviceState(voltage, currentAmp),
       },
     });
   } catch (error) {
