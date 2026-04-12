@@ -39,8 +39,23 @@ const isSocketBookedForWindow = async (socketId, startTime, endTime) => {
   });
 };
 
+const autoReleaseStuckSockets = async (sockets) => {
+  for (const socket of sockets) {
+    if (socket.status !== 'OCCUPIED') continue;
+    const hasActive = await Booking.exists({
+      socket: socket._id,
+      status: 'ACTIVE',
+    });
+    if (!hasActive) {
+      socket.status = 'AVAILABLE';
+      await socket.save();
+    }
+  }
+};
+
 const resolveBookingSocket = async ({ station, socketId, startTime, endTime }) => {
   const sockets = await ensureSocketsForStation(station);
+  await autoReleaseStuckSockets(sockets);
 
   if (socketId) {
     const requested = sockets.find((s) => s._id.toString() === socketId.toString());
