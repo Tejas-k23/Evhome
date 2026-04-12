@@ -18,6 +18,20 @@ const ensureSocketsForStation = async (station) => {
 
 const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime());
 
+const autoReleaseStuckSockets = async (sockets) => {
+  for (const socket of sockets) {
+    if (socket.status !== 'OCCUPIED') continue;
+    const hasActive = await Booking.exists({
+      socket: socket._id,
+      status: 'ACTIVE',
+    });
+    if (!hasActive) {
+      socket.status = 'AVAILABLE';
+      await socket.save();
+    }
+  }
+};
+
 // @desc    Get all active stations (public)
 // @route   GET /api/stations
 exports.getAllStations = async (req, res, next) => {
@@ -76,6 +90,7 @@ exports.getStationSockets = async (req, res, next) => {
     }
 
     const sockets = await ensureSocketsForStation(station);
+    await autoReleaseStuckSockets(sockets);
 
     const startTime = req.query.startTime ? new Date(req.query.startTime) : null;
     const endTime = req.query.endTime ? new Date(req.query.endTime) : null;
