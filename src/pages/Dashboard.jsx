@@ -61,21 +61,40 @@ const Dashboard = () => {
     }, [currentUser]);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            const status = iotService.generateLiveStatus(activeBooking);
-            setLiveData(status);
+        let isMounted = true;
+        let intervalId = null;
 
-            if (activeBooking) {
-                // Mock update energy in booking object locally for simulator continuity
-                setActiveBooking(prev => ({
-                    ...prev,
-                    energyKwh: status.energyKwh,
-                    cost: status.cost
-                }));
+        const fetchLiveData = async () => {
+            if (!activeBooking) return;
+            try {
+                const bookingId = activeBooking._id || activeBooking.id;
+                if (!bookingId) return;
+
+                const res = await iotService.getLiveData(bookingId);
+                const data = res?.data;
+                if (!res?.success || !data) return;
+
+                if (!isMounted) return;
+                setLiveData({
+                    voltage: data.voltage ?? '0.0',
+                    current: data.current ?? '0.0',
+                    energyKwh: data.energyKwh ?? '0.000',
+                    cost: data.cost ?? '0.00'
+                });
+            } catch (err) {
+                console.error('Failed to fetch live data', err);
             }
-        }, 3000);
+        };
 
-        return () => clearInterval(interval);
+        if (activeBooking) {
+            fetchLiveData();
+            intervalId = setInterval(fetchLiveData, 3000);
+        }
+
+        return () => {
+            isMounted = false;
+            if (intervalId) clearInterval(intervalId);
+        };
     }, [activeBooking]);
 
     const handleStart = async (bookingId) => {
