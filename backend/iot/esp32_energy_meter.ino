@@ -22,11 +22,11 @@
 // ============================================================
 
 // Backend server URL (your Got-Nexus backend)
-#define BACKEND_URL "http://YOUR_SERVER_IP:5000"
+#define BACKEND_URL "https://evhome.onrender.com/api"
 
 // IoT API Key — generated from Station Owner Dashboard
 // Go to Owner Dashboard > Your Station > IoT Settings > Generate API Key
-#define IOT_API_KEY "YOUR_IOT_API_KEY_HERE"
+#define IOT_API_KEY "04cec5d5c273d888072749d2a392e312607404d334392c45b7e3e18c0010aa61"
 
 // Socket number this device is monitoring (1, 2, 3, etc.)
 #define SOCKET_NUMBER 1
@@ -233,7 +233,12 @@ void fetchConfigFromServer() {
           String newPass = networks[i]["password"].as<String>();
           int newPrio = networks[i]["priority"].as<int>();
 
-          if (newSsid != wifiNetworks[i].ssid || newPass != wifiNetworks[i].password) {
+          // Ignore empty entries from server so local fallbacks remain
+          if (newSsid.length() == 0) {
+            continue;
+          }
+
+          if (newSsid != wifiNetworks[i].ssid || newPass != wifiNetworks[i].password || newPrio != wifiNetworks[i].priority) {
             changed = true;
           }
 
@@ -243,8 +248,31 @@ void fetchConfigFromServer() {
         }
 
         if (changed) {
+          // Sort by priority after applying updates
+          for (int i = 0; i < 2; i++) {
+            for (int j = i + 1; j < 3; j++) {
+              if (wifiNetworks[j].priority < wifiNetworks[i].priority) {
+                WifiNetwork temp = wifiNetworks[i];
+                wifiNetworks[i] = wifiNetworks[j];
+                wifiNetworks[j] = temp;
+              }
+            }
+          }
           saveWifiToPreferences();
           Serial.println("[Config] WiFi networks updated from server");
+
+          // Reconnect if we're offline or current SSID is no longer in the list
+          bool currentInList = false;
+          String currentSsid = WiFi.SSID();
+          for (int i = 0; i < 3; i++) {
+            if (wifiNetworks[i].ssid == currentSsid) {
+              currentInList = true;
+              break;
+            }
+          }
+          if (WiFi.status() != WL_CONNECTED || !currentInList) {
+            connectToWifi();
+          }
         }
       }
 
